@@ -2,13 +2,13 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>課程查詢系統 PRO</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="description" content="快速搜尋合適的 AWSEC make-up class 課堂">
+    <title>Make-up Class Finder</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <link rel="manifest" href="manifest.json">
-    
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -27,13 +27,17 @@
             .course-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
         }
         [v-cloak] { display: none; }
+        :focus-visible { outline: 3px solid rgba(59, 130, 246, .45); outline-offset: 3px; }
     </style>
 </head>
 <body>
     <div id="app" v-cloak class="max-w-4xl mx-auto p-4 md:p-10 pb-24">
         
         <div class="flex justify-between items-center mb-8">
-            <h1 class="text-2xl font-black tracking-tight text-gray-900">課程查詢系統 <span class="text-blue-500 text-sm font-bold tracking-normal ml-1">PRO</span></h1>
+            <div>
+                <h1 class="text-2xl font-black tracking-tight text-gray-900">Make-up Class Finder</h1>
+                <p class="text-xs font-semibold text-gray-400 mt-1">尋找合適的補堂日期及時間</p>
+            </div>
             <button @click="resetAll" class="hidden md:flex items-center gap-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-xl text-xs font-bold transition-all">
                 <i class="fa-solid fa-arrow-rotate-left"></i> 重設全部
             </button>
@@ -53,14 +57,14 @@
                     <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
                         <i class="fa-solid fa-magnifying-glass text-xs"></i>
                     </span>
-                    <input v-model="searchQuery" type="text" placeholder="搜尋課程編號 (例如: IC26)..." 
+                    <input v-model="searchQuery" type="search" inputmode="search" aria-label="搜尋課程編號" placeholder="搜尋課程編號（例如：IC26）"
                         class="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-2xl text-sm font-semibold border-2 border-transparent focus:border-blue-500 outline-none transition-all shadow-inner">
                 </div>
                 <div class="flex items-center justify-between md:justify-end gap-3 px-2">
                     <label class="text-xs font-bold text-gray-500 cursor-pointer select-none" for="pastToggle">
                         顯示今日以前的課程
                     </label>
-                    <input type="checkbox" id="pastToggle" v-model="includePast" 
+                    <input type="checkbox" id="pastToggle" v-model="includePast" aria-label="顯示今日以前的課程"
                         class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 cursor-pointer">
                 </div>
             </div>
@@ -88,6 +92,21 @@
                 </div>
             </div>
 
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-100">
+                <div>
+                    <label for="dateWindow" class="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">日期範圍</label>
+                    <select id="dateWindow" v-model="dateWindow" class="w-full p-4 bg-gray-50 rounded-2xl text-sm font-bold border-2 border-transparent focus:border-blue-500 outline-none shadow-inner">
+                        <option value="all">所有未來課堂</option>
+                        <option value="7">未來 7 日</option>
+                        <option value="30">未來 30 日</option>
+                    </select>
+                </div>
+                <label class="flex items-center justify-between md:justify-start gap-3 px-2 py-3 md:pt-7 cursor-pointer">
+                    <input type="checkbox" v-model="availableOnly" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
+                    <span class="text-xs font-bold text-gray-500">隱藏 Full / Pending 課堂</span>
+                </label>
+            </div>
+
             <div class="mt-6 pt-4 border-t border-gray-50">
                 <div class="flex items-center justify-between text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">
                     <span>選擇堂數 (可多選)</span>
@@ -103,10 +122,31 @@
             </div>
         </div>
 
-        <div v-if="filteredCourses.length > 0" class="course-grid">
+        <div v-if="!loading && !loadError" class="flex items-center justify-between mb-4 px-1" aria-live="polite">
+            <p class="text-sm font-black text-gray-700">找到 {{ filteredCourses.length }} 個選擇</p>
+            <p class="text-[10px] font-bold text-gray-400">按卡片即可複製資料</p>
+        </div>
+
+        <div v-if="loading" class="text-center py-24" role="status">
+            <i class="fa-solid fa-circle-notch fa-spin text-blue-500 text-2xl mb-4"></i>
+            <p class="text-gray-500 font-bold text-sm">正在載入課程資料…</p>
+        </div>
+
+        <div v-else-if="loadError" class="ios-card border border-red-100 p-8 text-center" role="alert">
+            <i class="fa-solid fa-triangle-exclamation text-red-500 text-2xl mb-4"></i>
+            <p class="text-gray-800 font-black">未能載入課程資料</p>
+            <p class="text-gray-400 text-xs mt-2">{{ loadError }}</p>
+            <button @click="loadData" class="mt-5 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold">重新載入</button>
+        </div>
+
+        <div v-else-if="filteredCourses.length > 0" class="course-grid">
             <div v-for="group in filteredCourses" 
                  :key="group.id"
                  @click="copyFullGroup(group)"
+                 @keydown.enter="copyFullGroup(group)"
+                 @keydown.space.prevent="copyFullGroup(group)"
+                 role="button" tabindex="0"
+                 :aria-label="`複製 ${group.code} ${group.date} 的課堂資料`"
                  class="ios-card p-6 mb-4 md:mb-0 hover:shadow-xl active:scale-[0.99] transition-all cursor-pointer border border-transparent hover:border-blue-200 group relative overflow-hidden">
                 
                 <div v-if="group.matchedSessions.length > 1" class="absolute left-0 top-0 bottom-0 w-1.5 bg-orange-500"></div>
@@ -149,15 +189,16 @@
             </div>
         </div>
 
-        <div v-else class="text-center py-32">
+        <div v-else-if="!loading && !loadError" class="text-center py-24">
             <div class="bg-gray-100 w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-6 rotate-12">
                 <i class="fa-solid fa-calendar-xmark text-gray-300 text-2xl"></i>
             </div>
-            <p class="text-gray-400 font-bold text-sm">沒有符合條件的課程</p>
-            <button @click="resetAll" class="mt-4 text-blue-500 font-bold text-xs hover:underline">RESET ALL</button>
+            <p class="text-gray-600 font-bold text-sm">沒有符合條件的課程</p>
+            <p class="text-gray-400 text-xs mt-2">可嘗試增加日期範圍或顯示 Full / Pending 課堂</p>
+            <button @click="resetAll" class="mt-4 text-blue-500 font-bold text-xs hover:underline">重設所有篩選</button>
         </div>
 
-        <button @click="resetAll" class="md:hidden fixed bottom-8 right-8 bg-black text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center active:scale-90 transition-transform z-50">
+        <button @click="resetAll" aria-label="重設所有篩選" class="md:hidden fixed bottom-8 right-8 bg-black text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center active:scale-90 transition-transform z-50">
             <i class="fa-solid fa-arrow-rotate-left"></i>
         </button>
     </div>
@@ -173,6 +214,10 @@
                 const targetSessions = ref([1]);
                 const searchQuery = ref('');
                 const includePast = ref(false);
+                const dateWindow = ref('all');
+                const availableOnly = ref(true);
+                const loading = ref(true);
+                const loadError = ref('');
 
                 const levels = ['Level 2', 'Level 3'];
                 const languages = ['All', 'English', 'Mandarin', 'Cantonese'];
@@ -184,13 +229,16 @@
                 });
 
                 const loadData = async () => {
+                    loading.value = true;
+                    loadError.value = '';
                     try {
-                        const res = await fetch('courses.csv');
+                        const res = await fetch('courses.csv', { cache: 'no-store' });
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
                         const text = await res.text();
                         const rows = text.replace(/\r/g, '').split('\n').filter(r => r.trim() !== '').slice(1);
                         
                         allCourses.value = rows.map(row => {
-                            const cols = row.split(',').map(c => c.trim());
+                            const cols = parseCsvRow(row);
                             const sessions = [];
                             for (let i = 4; i < cols.length; i += 2) {
                                 if (cols[i]) {
@@ -198,27 +246,50 @@
                                 }
                             }
                             return { code: cols[0], type: cols[1], language: cols[2], level: cols[3], sessions };
-                        });
-                    } catch (e) { console.error("CSV 載入失敗：", e); }
+                        }).filter(course => course.code && course.level && course.sessions.length);
+                    } catch (e) {
+                        console.error("CSV 載入失敗：", e);
+                        loadError.value = '請檢查網絡連線後再試。';
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                const parseCsvRow = (row) => {
+                    const values = [];
+                    let value = '';
+                    let quoted = false;
+                    for (let i = 0; i < row.length; i++) {
+                        const char = row[i];
+                        if (char === '"' && row[i + 1] === '"' && quoted) { value += '"'; i++; }
+                        else if (char === '"') quoted = !quoted;
+                        else if (char === ',' && !quoted) { values.push(value.trim()); value = ''; }
+                        else value += char;
+                    }
+                    values.push(value.trim());
+                    return values;
                 };
 
                 const parseDate = (dateStr) => {
-                    if (!dateStr) return new Date(8640000000000000);
+                    if (!dateStr || !/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) return null;
                     const parts = dateStr.split('/');
-                    if (parts.length !== 3) return new Date(8640000000000000); 
                     const [d, m, y] = parts.map(Number);
-                    return new Date(y, m - 1, d);
+                    const result = new Date(y, m - 1, d);
+                    if (result.getFullYear() !== y || result.getMonth() !== m - 1 || result.getDate() !== d) return null;
+                    return result;
                 };
 
                 // 英文星期標籤轉換
                 const getEnglishWeekday = (dateStr) => {
                     const d = parseDate(dateStr);
+                    if (!d) return '';
                     const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                     return weekdays[d.getDay()] || '';
                 };
 
                 const getWeekdayLabel = (dateStr) => {
                     const d = parseDate(dateStr);
+                    if (!d) return '';
                     const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
                     return weekdays[d.getDay()] || '';
                 };
@@ -226,6 +297,8 @@
                 const filteredCourses = computed(() => {
                     const today = new Date();
                     today.setHours(0,0,0,0);
+                    const latestDate = dateWindow.value === 'all' ? null : new Date(today);
+                    if (latestDate) latestDate.setDate(latestDate.getDate() + Number(dateWindow.value));
 
                     const groupsMap = new Map();
 
@@ -237,10 +310,11 @@
 
                         c.sessions.forEach(s => {
                             if (targetSessions.value.includes(s.num)) {
-                                if (!includePast.value) {
-                                    const sDate = parseDate(s.date);
-                                    if (sDate < today) return;
-                                }
+                                const sDate = parseDate(s.date);
+                                if (!sDate) return;
+                                if (!includePast.value && sDate < today) return;
+                                if (latestDate && sDate > latestDate) return;
+                                if (availableOnly.value && ['full', 'pending'].includes(s.time.toLowerCase())) return;
 
                                 const key = `${c.code}_${s.date}`;
                                 
@@ -279,6 +353,7 @@
 
                 const isToday = (dateStr) => {
                     const sessionDate = parseDate(dateStr);
+                    if (!sessionDate) return false;
                     const today = new Date();
                     return sessionDate.getDate() === today.getDate() &&
                            sessionDate.getMonth() === today.getMonth() &&
@@ -297,6 +372,27 @@
                 };
 
                 // 情況一：點擊整張卡片，複製全英文合併訊息
+                const writeClipboard = async (text, successMessage) => {
+                    try {
+                        if (navigator.clipboard && window.isSecureContext) {
+                            await navigator.clipboard.writeText(text);
+                        } else {
+                            const area = document.createElement('textarea');
+                            area.value = text;
+                            area.style.position = 'fixed';
+                            area.style.opacity = '0';
+                            document.body.appendChild(area);
+                            area.select();
+                            if (!document.execCommand('copy')) throw new Error('Copy failed');
+                            area.remove();
+                        }
+                        showToast(successMessage);
+                    } catch (error) {
+                        console.error('複製失敗：', error);
+                        showToast('未能複製，請重試');
+                    }
+                };
+
                 const copyFullGroup = (group) => {
                     const engDay = getEnglishWeekday(group.date);
                     let sessionDetails = '';
@@ -311,9 +407,7 @@
 
                     const text = `【Course Code】${group.code}\nCourse Type: ${group.type}\nLanguage: ${group.language}\n${sessionDetails}`;
                     
-                    navigator.clipboard.writeText(text).then(() => {
-                        showToast(`Copied all sessions for ${group.code}!`);
-                    });
+                    writeClipboard(text, `已複製 ${group.code} 的課堂資料`);
                 };
 
                 // 情況二：點擊單堂標籤，複製全英文單堂訊息
@@ -321,9 +415,7 @@
                     const engDay = getEnglishWeekday(group.date);
                     const text = `【Course Code】${group.code}\nCourse Type: ${group.type}\nLanguage: ${group.language}\nSession: Session ${session.num}\nDate: ${group.date} (${engDay}) (${session.time})`;
                     
-                    navigator.clipboard.writeText(text).then(() => {
-                        showToast(`Copied Session ${session.num} for ${group.code}!`);
-                    });
+                    writeClipboard(text, `已複製 ${group.code} 第 ${session.num} 堂`);
                 };
 
                 const toggleSession = (n) => {
@@ -334,6 +426,7 @@
                         }
                     } else {
                         targetSessions.value.push(n);
+                        targetSessions.value.sort((a, b) => a - b);
                     }
                 };
 
@@ -346,11 +439,14 @@
                 };
 
                 const resetAll = () => {
+                    selectedLevel.value = 'Level 2';
                     selectedLanguage.value = 'All';
                     selectedType.value = 'All';
                     targetSessions.value = [1];
                     searchQuery.value = '';
                     includePast.value = false;
+                    dateWindow.value = 'all';
+                    availableOnly.value = true;
                 };
 
                 const resetSession = () => { targetSessions.value = [1]; };
@@ -360,7 +456,8 @@
                 return { 
                     levels, selectedLevel, languages, selectedLanguage, 
                     courseTypes, selectedType, targetSessions, sessionRange, 
-                    filteredCourses, searchQuery, includePast, 
+                    filteredCourses, searchQuery, includePast, dateWindow, availableOnly,
+                    loading, loadError, loadData,
                     getTypeStyle, isToday, copyFullGroup, copySingleSession, resetAll, resetSession,
                     getWeekdayLabel, toggleSession, toggleAllSessions
                 };
