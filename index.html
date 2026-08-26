@@ -267,6 +267,7 @@
                 const loadError = ref('');
                 const originalCourseCode = ref('');
                 const selectedOptions = ref([]);
+                const sessionSelectionTouched = ref(false);
 
                 const levels = ['Level 2', 'Level 3'];
                 const languages = ['All', 'English', 'Mandarin', 'Cantonese'];
@@ -289,6 +290,7 @@
                     selectedLanguage.value = course.language;
                     selectedType.value = 'All';
                     targetSessions.value = [1];
+                    sessionSelectionTouched.value = false;
                     selectedOptions.value = [];
                 });
 
@@ -526,6 +528,13 @@
                 };
 
                 const toggleSession = (n) => {
+                    if (!sessionSelectionTouched.value) {
+                        sessionSelectionTouched.value = true;
+                        if (n !== 1) {
+                            targetSessions.value = [n];
+                            return;
+                        }
+                    }
                     const index = targetSessions.value.indexOf(n);
                     if (index > -1) {
                         if (targetSessions.value.length > 1) {
@@ -538,6 +547,7 @@
                 };
 
                 const toggleAllSessions = () => {
+                    sessionSelectionTouched.value = true;
                     if (targetSessions.value.length === sessionRange.value.length) {
                         targetSessions.value = [1];
                     } else {
@@ -556,9 +566,13 @@
                     availableOnly.value = true;
                     originalCourseCode.value = '';
                     selectedOptions.value = [];
+                    sessionSelectionTouched.value = false;
                 };
 
-                const resetSession = () => { targetSessions.value = [1]; };
+                const resetSession = () => {
+                    targetSessions.value = [1];
+                    sessionSelectionTouched.value = false;
+                };
 
                 onMounted(loadData);
 
