@@ -251,7 +251,7 @@
     </div>
 
     <script>
-        const { createApp, ref, computed, onMounted, watch } = Vue;
+        const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
         createApp({
             setup() {
                 const allCourses = ref([]);
@@ -574,7 +574,35 @@
                     sessionSelectionTouched.value = false;
                 };
 
-                onMounted(loadData);
+                const applyUrlParameters = async () => {
+                    const params = new URLSearchParams(window.location.search);
+                    const courseParam = (params.get('course') || '').trim().toUpperCase();
+                    const sessionParam = params.get('sessions') || params.get('session') || '';
+
+                    if (courseParam) {
+                        originalCourseCode.value = courseParam;
+                    }
+
+                    // Let the original-course watcher set Level/language before applying sessions.
+                    await nextTick();
+
+                    const maxSession = selectedLevel.value === 'Level 3' ? 18 : 8;
+                    const requestedSessions = [...new Set(
+                        (sessionParam.match(/\d+/g) || [])
+                            .map(Number)
+                            .filter(n => n >= 1 && n <= maxSession)
+                    )].sort((a, b) => a - b);
+
+                    if (requestedSessions.length) {
+                        targetSessions.value = requestedSessions;
+                        sessionSelectionTouched.value = true;
+                    }
+                };
+
+                onMounted(async () => {
+                    await loadData();
+                    await applyUrlParameters();
+                });
 
                 return { 
                     levels, selectedLevel, languages, selectedLanguage, 
