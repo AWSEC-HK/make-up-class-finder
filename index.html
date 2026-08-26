@@ -44,6 +44,27 @@
         </div>
 
         <div class="ios-card p-6 mb-8 border border-white relative">
+            <div class="mb-6 pb-6 border-b border-gray-100">
+                <label for="originalCourse" class="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">
+                    學員原本課程編號
+                </label>
+                <div class="relative">
+                    <i class="fa-solid fa-graduation-cap absolute left-4 top-1/2 -translate-y-1/2 text-blue-500 text-xs"></i>
+                    <input id="originalCourse" v-model.trim="originalCourseCode" type="search" autocomplete="off" spellcheck="false"
+                        placeholder="例如：IC2609"
+                        class="w-full pl-10 pr-4 py-3 bg-blue-50/70 rounded-2xl text-sm font-black uppercase border-2 border-transparent focus:border-blue-500 outline-none transition-all">
+                </div>
+                <p v-if="sourceCourse" class="mt-2 text-xs font-bold text-green-600" aria-live="polite">
+                    <i class="fa-solid fa-circle-check mr-1"></i>
+                    已自動選擇 {{ sourceCourse.level }}、{{ sourceCourse.language }}，並排除 {{ sourceCourse.code }}
+                </p>
+                <p v-else-if="originalCourseCode" class="mt-2 text-xs font-bold text-amber-600" aria-live="polite">
+                    <i class="fa-solid fa-circle-exclamation mr-1"></i>
+                    找不到完全相符的課程編號，請檢查輸入
+                </p>
+                <p v-else class="mt-2 text-[11px] text-gray-400">輸入後會自動設定 Level 及語言；亦可略過並手動篩選。</p>
+            </div>
+
             <div class="flex bg-gray-200 p-1 rounded-2xl mb-6 max-w-sm mx-auto">
                 <button v-for="l in levels" :key="l" @click="selectedLevel = l; resetSession()" 
                     :class="selectedLevel === l ? 'bg-white shadow-md text-black' : 'text-gray-500'"
@@ -57,7 +78,7 @@
                     <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
                         <i class="fa-solid fa-magnifying-glass text-xs"></i>
                     </span>
-                    <input v-model="searchQuery" type="search" inputmode="search" aria-label="搜尋課程編號" placeholder="搜尋課程編號（例如：IC26）"
+                    <input v-model="searchQuery" type="search" inputmode="search" aria-label="搜尋補堂課程編號" placeholder="篩選補堂課程（例如：IC26）"
                         class="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-2xl text-sm font-semibold border-2 border-transparent focus:border-blue-500 outline-none transition-all shadow-inner">
                 </div>
                 <div class="flex items-center justify-between md:justify-end gap-3 px-2">
@@ -122,6 +143,26 @@
             </div>
         </div>
 
+        <div v-if="selectedOptions.length" class="ios-card p-5 mb-6 border-2 border-green-100 bg-green-50/30">
+            <div class="flex items-center justify-between gap-3 mb-4">
+                <div>
+                    <p class="font-black text-gray-900">已選 {{ selectedOptions.length }} 個補堂選項</p>
+                    <p class="text-[10px] text-gray-400 mt-1">可一次過整理成 WhatsApp 訊息</p>
+                </div>
+                <button @click="clearSelections" class="text-xs font-bold text-gray-400 hover:text-red-500">清除</button>
+            </div>
+            <div class="flex flex-wrap gap-2 mb-4">
+                <button v-for="item in selectedOptions" :key="item.id" @click="removeSelection(item.id)"
+                    class="bg-white border border-green-100 rounded-xl px-3 py-2 text-[10px] font-bold text-gray-700 hover:border-red-200 hover:text-red-500"
+                    :aria-label="`移除 ${item.code} 第 ${item.sessionNum} 堂`">
+                    {{ item.code }} · 第 {{ item.sessionNum }} 堂 · {{ item.date }} <i class="fa-solid fa-xmark ml-1"></i>
+                </button>
+            </div>
+            <button @click="copySelectedOptions" class="w-full bg-green-600 hover:bg-green-700 text-white rounded-2xl py-3 text-sm font-black transition-colors">
+                <i class="fa-brands fa-whatsapp mr-2"></i>複製 WhatsApp 訊息
+            </button>
+        </div>
+
         <div v-if="!loading && !loadError" class="flex items-center justify-between mb-4 px-1" aria-live="polite">
             <p class="text-sm font-black text-gray-700">找到 {{ filteredCourses.length }} 個選擇</p>
             <p class="text-[10px] font-bold text-gray-400">按卡片即可複製資料</p>
@@ -165,13 +206,19 @@
                         </div>
                         
                         <div class="flex flex-wrap gap-1.5 mt-3">
-                            <button v-for="s in group.matchedSessions" 
-                                    :key="s.num" 
-                                    @click.stop="copySingleSession(group, s)"
-                                    class="bg-gray-100 hover:bg-blue-600 hover:text-white text-gray-700 text-[10px] px-2.5 py-1 rounded-xl font-bold transition-all flex items-center gap-1 group/btn border border-gray-200/50">
-                                <span>第 {{ s.num }} 堂 ({{ s.time }})</span>
-                                <i class="fa-regular fa-copy text-[9px] opacity-40 group-hover/btn:opacity-100"></i>
-                            </button>
+                            <div v-for="s in group.matchedSessions" :key="s.num" class="inline-flex rounded-xl overflow-hidden border border-gray-200/50">
+                                <button @click.stop="copySingleSession(group, s)"
+                                    class="bg-gray-100 hover:bg-blue-600 hover:text-white text-gray-700 text-[10px] px-2.5 py-1 font-bold transition-all flex items-center gap-1 group/btn">
+                                    <span>第 {{ s.num }} 堂 ({{ s.time }})</span>
+                                    <i class="fa-regular fa-copy text-[9px] opacity-40 group-hover/btn:opacity-100"></i>
+                                </button>
+                                <button @click.stop="toggleSelection(group, s)"
+                                    :aria-label="isSelected(group, s) ? '從已選項目移除' : '加入已選項目'"
+                                    :class="isSelected(group, s) ? 'bg-green-600 text-white' : 'bg-white text-blue-600 hover:bg-blue-50'"
+                                    class="px-2 py-1 text-[10px] font-black transition-colors border-l border-gray-200/50">
+                                    <i :class="isSelected(group, s) ? 'fa-solid fa-check' : 'fa-solid fa-plus'"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="text-[11px] text-gray-400 font-bold mt-3 tracking-wide uppercase italic">{{ group.language }}</div>
                     </div>
@@ -204,7 +251,7 @@
     </div>
 
     <script>
-        const { createApp, ref, computed, onMounted } = Vue;
+        const { createApp, ref, computed, onMounted, watch } = Vue;
         createApp({
             setup() {
                 const allCourses = ref([]);
@@ -218,6 +265,9 @@
                 const availableOnly = ref(true);
                 const loading = ref(true);
                 const loadError = ref('');
+                const originalCourseCode = ref('');
+                const selectedOptions = ref([]);
+                const sessionSelectionTouched = ref(false);
 
                 const levels = ['Level 2', 'Level 3'];
                 const languages = ['All', 'English', 'Mandarin', 'Cantonese'];
@@ -226,6 +276,22 @@
                 const sessionRange = computed(() => {
                     const max = selectedLevel.value === 'Level 2' ? 8 : 18;
                     return Array.from({length: max}, (_, i) => i + 1);
+                });
+
+                const sourceCourse = computed(() => {
+                    const code = originalCourseCode.value.trim().toLowerCase();
+                    if (!code) return null;
+                    return allCourses.value.find(course => course.code.toLowerCase() === code) || null;
+                });
+
+                watch(sourceCourse, (course) => {
+                    if (!course) return;
+                    selectedLevel.value = course.level;
+                    selectedLanguage.value = course.language;
+                    selectedType.value = 'All';
+                    targetSessions.value = [1];
+                    sessionSelectionTouched.value = false;
+                    selectedOptions.value = [];
                 });
 
                 const loadData = async () => {
@@ -303,6 +369,7 @@
                     const groupsMap = new Map();
 
                     allCourses.value.forEach(c => {
+                        if (sourceCourse.value && c.code === sourceCourse.value.code) return;
                         if (c.level !== selectedLevel.value) return;
                         if (selectedLanguage.value !== 'All' && c.language !== selectedLanguage.value) return;
                         if (selectedType.value !== 'All' && c.type !== selectedType.value) return;
@@ -418,7 +485,56 @@
                     writeClipboard(text, `已複製 ${group.code} 第 ${session.num} 堂`);
                 };
 
+                const selectionId = (group, session) => `${group.code}_${group.date}_${session.num}`;
+
+                const isSelected = (group, session) => {
+                    const id = selectionId(group, session);
+                    return selectedOptions.value.some(item => item.id === id);
+                };
+
+                const toggleSelection = (group, session) => {
+                    const id = selectionId(group, session);
+                    const index = selectedOptions.value.findIndex(item => item.id === id);
+                    if (index >= 0) {
+                        selectedOptions.value.splice(index, 1);
+                        return;
+                    }
+                    selectedOptions.value.push({
+                        id,
+                        code: group.code,
+                        type: group.type,
+                        language: group.language,
+                        date: group.date,
+                        sessionNum: session.num,
+                        time: session.time
+                    });
+                    selectedOptions.value.sort((a, b) => parseDate(a.date) - parseDate(b.date) || a.sessionNum - b.sessionNum);
+                };
+
+                const removeSelection = (id) => {
+                    selectedOptions.value = selectedOptions.value.filter(item => item.id !== id);
+                };
+
+                const clearSelections = () => { selectedOptions.value = []; };
+
+                const copySelectedOptions = () => {
+                    const sourceLine = sourceCourse.value ? `Original Course: ${sourceCourse.value.code}\n\n` : '';
+                    const choices = selectedOptions.value.map((item, index) => {
+                        const weekday = getEnglishWeekday(item.date);
+                        return `${index + 1}. ${item.code}\n   Session ${item.sessionNum}: ${item.date} (${weekday}), ${item.time}\n   ${item.language} · ${item.type}`;
+                    }).join('\n\n');
+                    const text = `Please find the available make-up class option(s) below:\n\n${sourceLine}${choices}\n\nPlease let us know which option you prefer. Thank you.`;
+                    writeClipboard(text, `已複製 ${selectedOptions.value.length} 個補堂選項`);
+                };
+
                 const toggleSession = (n) => {
+                    if (!sessionSelectionTouched.value) {
+                        sessionSelectionTouched.value = true;
+                        if (n !== 1) {
+                            targetSessions.value = [n];
+                            return;
+                        }
+                    }
                     const index = targetSessions.value.indexOf(n);
                     if (index > -1) {
                         if (targetSessions.value.length > 1) {
@@ -431,6 +547,7 @@
                 };
 
                 const toggleAllSessions = () => {
+                    sessionSelectionTouched.value = true;
                     if (targetSessions.value.length === sessionRange.value.length) {
                         targetSessions.value = [1];
                     } else {
@@ -447,9 +564,15 @@
                     includePast.value = false;
                     dateWindow.value = 'all';
                     availableOnly.value = true;
+                    originalCourseCode.value = '';
+                    selectedOptions.value = [];
+                    sessionSelectionTouched.value = false;
                 };
 
-                const resetSession = () => { targetSessions.value = [1]; };
+                const resetSession = () => {
+                    targetSessions.value = [1];
+                    sessionSelectionTouched.value = false;
+                };
 
                 onMounted(loadData);
 
@@ -458,8 +581,10 @@
                     courseTypes, selectedType, targetSessions, sessionRange, 
                     filteredCourses, searchQuery, includePast, dateWindow, availableOnly,
                     loading, loadError, loadData,
+                    originalCourseCode, sourceCourse, selectedOptions,
                     getTypeStyle, isToday, copyFullGroup, copySingleSession, resetAll, resetSession,
-                    getWeekdayLabel, toggleSession, toggleAllSessions
+                    getWeekdayLabel, toggleSession, toggleAllSessions,
+                    toggleSelection, isSelected, removeSelection, clearSelections, copySelectedOptions
                 };
             }
         }).mount('#app');
