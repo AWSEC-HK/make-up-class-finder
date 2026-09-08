@@ -1,192 +1,110 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#2563eb">
-    <meta name="description" content="快速搜尋合適的 AWSEC make-up class 課堂">
-    <title>Make-up Class Finder</title>
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        body { background-color: #f2f2f7; -webkit-tap-highlight-color: transparent; }
-        .ios-card { background: white; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
-        .font-rounded { font-family: ui-rounded, system-ui, -apple-system, sans-serif; }
-        .course-code { font-family: 'Courier New', Courier, monospace; letter-spacing: 0.05em; font-weight: 800; }
-        select { -webkit-appearance: none; appearance: none; cursor: pointer; }
-        @media (min-width: 768px) { .course-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; } }
-        [v-cloak] { display: none; }
-        :focus-visible { outline: 3px solid rgba(59, 130, 246, .45); outline-offset: 3px; }
-    </style>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><meta name="theme-color" content="#2563eb"><meta name="description" content="快速搜尋合適的 AWSEC make-up class 課堂"><title>Make-up Class Finder</title>
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default">
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>body{background:#f2f2f7;-webkit-tap-highlight-color:transparent}.ios-card{background:#fff;border-radius:20px;box-shadow:0 4px 20px rgba(0,0,0,.04)}.font-rounded{font-family:ui-rounded,system-ui,-apple-system,sans-serif}.course-code{font-family:'Courier New',Courier,monospace;letter-spacing:.05em;font-weight:800}select{-webkit-appearance:none;appearance:none;cursor:pointer}@media(min-width:768px){.course-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}}[v-cloak]{display:none}:focus-visible{outline:3px solid rgba(59,130,246,.45);outline-offset:3px}</style>
 </head>
 <body>
-    <div id="app" v-cloak class="max-w-4xl mx-auto p-4 md:p-10 pb-24">
-        <div class="flex justify-between items-start gap-4 mb-8">
-            <div>
-                <h1 class="text-2xl font-black tracking-tight text-gray-900">Make-up Class Finder</h1>
-                <p class="text-xs font-semibold text-gray-400 mt-1">尋找合適的補堂日期及時間</p>
-            </div>
-            <div class="flex items-center gap-2">
-                <a href="requests.html" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black transition-all">
-                    <i class="fa-solid fa-list-check"></i> Requests
-                </a>
-                <button @click="resetAll" class="hidden md:flex items-center gap-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-xl text-xs font-bold transition-all">
-                    <i class="fa-solid fa-arrow-rotate-left"></i> 重設全部
-                </button>
-            </div>
-        </div>
+<div id="app" v-cloak class="max-w-4xl mx-auto p-4 md:p-10 pb-24">
+  <div class="flex justify-between items-start gap-4 mb-8">
+    <div><h1 class="text-2xl font-black tracking-tight text-gray-900">Make-up Class Finder</h1><p class="text-xs font-semibold text-gray-400 mt-1">尋找合適的補堂日期及時間</p></div>
+    <div class="flex items-center gap-2"><a href="requests.html" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black"><i class="fa-solid fa-list-check"></i> Requests</a><button @click="resetAll" class="hidden md:flex items-center gap-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-xl text-xs font-bold"><i class="fa-solid fa-arrow-rotate-left"></i> 重設全部</button></div>
+  </div>
 
-        <div class="ios-card p-6 mb-8 border border-white relative">
-            <div class="mb-6 pb-6 border-b border-gray-100">
-                <label for="originalCourse" class="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">學員原本課程編號</label>
-                <div class="relative">
-                    <i class="fa-solid fa-graduation-cap absolute left-4 top-1/2 -translate-y-1/2 text-blue-500 text-xs"></i>
-                    <input id="originalCourse" v-model.trim="originalCourseCode" type="search" autocomplete="off" spellcheck="false" placeholder="例如：IC2609" class="w-full pl-10 pr-4 py-3 bg-blue-50/70 rounded-2xl text-sm font-black uppercase border-2 border-transparent focus:border-blue-500 outline-none transition-all">
-                </div>
-                <p v-if="sourceCourse" class="mt-2 text-xs font-bold text-green-600" aria-live="polite"><i class="fa-solid fa-circle-check mr-1"></i> 已自動選擇 {{ sourceCourse.level }}、{{ sourceCourse.language }}，並排除 {{ sourceCourse.code }}</p>
-                <p v-else-if="originalCourseCode" class="mt-2 text-xs font-bold text-amber-600" aria-live="polite"><i class="fa-solid fa-circle-exclamation mr-1"></i> 找不到完全相符的課程編號，請檢查輸入</p>
-                <p v-else class="mt-2 text-[11px] text-gray-400">輸入後會自動設定 Level 及語言；亦可略過並手動篩選。</p>
-            </div>
-
-            <div class="flex bg-gray-200 p-1 rounded-2xl mb-6 max-w-sm mx-auto">
-                <button v-for="l in levels" :key="l" @click="selectedLevel = l; resetSession()" :class="selectedLevel === l ? 'bg-white shadow-md text-black' : 'text-gray-500'" class="flex-1 py-2 rounded-xl text-sm font-bold transition-all">{{ l }}</button>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 border-b border-gray-100 pb-6">
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400"><i class="fa-solid fa-magnifying-glass text-xs"></i></span>
-                    <input v-model="searchQuery" type="search" inputmode="search" aria-label="搜尋補堂課程編號" placeholder="篩選補堂課程（例如：IC26）" class="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-2xl text-sm font-semibold border-2 border-transparent focus:border-blue-500 outline-none transition-all shadow-inner">
-                </div>
-                <div class="flex items-center justify-between md:justify-end gap-3 px-2">
-                    <label class="text-xs font-bold text-gray-500 cursor-pointer select-none" for="pastToggle">顯示今日以前的課程</label>
-                    <input type="checkbox" id="pastToggle" v-model="includePast" aria-label="顯示今日以前的課程" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 cursor-pointer">
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <div class="flex items-center gap-2 text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest"><i class="fa-solid fa-language text-blue-500 text-xs"></i> 語言</div>
-                    <select v-model="selectedLanguage" class="w-full p-4 bg-gray-50 rounded-2xl text-sm font-bold border-2 border-transparent focus:border-blue-500 outline-none transition-all shadow-inner"><option v-for="opt in languages" :key="opt">{{ opt }}</option></select>
-                </div>
-                <div class="relative">
-                    <div class="flex items-center justify-center gap-2 text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest"><i class="fa-solid fa-layer-group text-purple-500 text-xs"></i> 課程模式</div>
-                    <select v-model="selectedType" class="w-full p-4 bg-gray-50 rounded-2xl text-sm font-bold text-center border-2 border-transparent focus:border-blue-500 outline-none transition-all shadow-inner"><option v-for="type in courseTypes" :key="type">{{ type }}</option></select>
-                    <div class="absolute right-6 top-[72%] -translate-y-1/2 pointer-events-none text-gray-300"><i class="fa-solid fa-chevron-down text-[10px]"></i></div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-100">
-                <div>
-                    <label for="dateWindow" class="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">日期範圍</label>
-                    <select id="dateWindow" v-model="dateWindow" class="w-full p-4 bg-gray-50 rounded-2xl text-sm font-bold border-2 border-transparent focus:border-blue-500 outline-none shadow-inner"><option value="all">所有未來課堂</option><option value="7">未來 7 日</option><option value="30">未來 30 日</option></select>
-                </div>
-                <label class="flex items-center justify-between md:justify-start gap-3 px-2 py-3 md:pt-7 cursor-pointer"><input type="checkbox" v-model="availableOnly" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"><span class="text-xs font-bold text-gray-500">隱藏 Full / Pending 課堂</span></label>
-            </div>
-
-            <div class="mt-6 pt-4 border-t border-gray-50">
-                <div class="flex items-center justify-between text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest"><span>選擇堂數 (可多選)</span><button @click="toggleAllSessions" class="text-blue-500 hover:underline lowercase text-[11px] font-bold">全選 / 全不選</button></div>
-                <div class="flex flex-wrap gap-2 max-h-24 overflow-y-auto p-1 bg-gray-50 rounded-2xl">
-                    <button v-for="n in sessionRange" :key="n" @click="toggleSession(n)" :class="targetSessions.includes(n) ? 'bg-orange-500 text-white shadow-sm' : 'bg-white text-gray-600 hover:bg-gray-100'" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all min-w-[55px]">第 {{ n }} 堂</button>
-                </div>
-            </div>
-        </div>
-
-        <div v-if="selectedOptions.length" class="ios-card p-5 mb-6 border-2 border-green-100 bg-green-50/30">
-            <div class="flex items-center justify-between gap-3 mb-4">
-                <div><p class="font-black text-gray-900">已選 {{ selectedOptions.length }} 個補堂選項</p><p class="text-[10px] text-gray-400 mt-1">傳給學生可複製 WhatsApp；學生確認後按 Confirm</p></div>
-                <button @click="clearSelections" class="text-xs font-bold text-gray-400 hover:text-red-500">清除</button>
-            </div>
-            <div class="space-y-2 mb-4">
-                <div v-for="item in selectedOptions" :key="item.id" class="flex flex-col sm:flex-row sm:items-center gap-2 bg-white border border-green-100 rounded-2xl px-3 py-2.5">
-                    <div class="flex-1 text-xs font-bold text-gray-700">{{ item.code }} · 第 {{ item.sessionNum }} 堂 · {{ item.date }}</div>
-                    <div class="flex gap-2">
-                        <button @click="confirmMakeup(item)" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[11px] font-black"><i class="fa-solid fa-check mr-1"></i>Confirm</button>
-                        <button @click="removeSelection(item.id)" class="px-3 py-2 bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-500 rounded-xl text-[11px] font-bold" :aria-label="`移除 ${item.code} 第 ${item.sessionNum} 堂`"><i class="fa-solid fa-xmark"></i></button>
-                    </div>
-                </div>
-            </div>
-            <button @click="copySelectedOptions" class="w-full bg-green-600 hover:bg-green-700 text-white rounded-2xl py-3 text-sm font-black transition-colors"><i class="fa-brands fa-whatsapp mr-2"></i>複製 WhatsApp 訊息</button>
-        </div>
-
-        <div v-if="!loading && !loadError" class="flex items-center justify-between mb-4 px-1" aria-live="polite"><p class="text-sm font-black text-gray-700">找到 {{ filteredCourses.length }} 個選擇</p><p class="text-[10px] font-bold text-gray-400">按卡片即可複製資料</p></div>
-        <div v-if="loading" class="text-center py-24" role="status"><i class="fa-solid fa-circle-notch fa-spin text-blue-500 text-2xl mb-4"></i><p class="text-gray-500 font-bold text-sm">正在載入課程資料…</p></div>
-        <div v-else-if="loadError" class="ios-card border border-red-100 p-8 text-center" role="alert"><i class="fa-solid fa-triangle-exclamation text-red-500 text-2xl mb-4"></i><p class="text-gray-800 font-black">未能載入課程資料</p><p class="text-gray-400 text-xs mt-2">{{ loadError }}</p><button @click="loadData" class="mt-5 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold">重新載入</button></div>
-
-        <div v-else-if="filteredCourses.length > 0" class="course-grid">
-            <div v-for="group in filteredCourses" :key="group.id" @click="copyFullGroup(group)" @keydown.enter="copyFullGroup(group)" @keydown.space.prevent="copyFullGroup(group)" role="button" tabindex="0" :aria-label="`複製 ${group.code} ${group.date} 的課堂資料`" class="ios-card p-6 mb-4 md:mb-0 hover:shadow-xl active:scale-[0.99] transition-all cursor-pointer border border-transparent hover:border-blue-200 group relative overflow-hidden">
-                <div v-if="group.matchedSessions.length > 1" class="absolute left-0 top-0 bottom-0 w-1.5 bg-orange-500"></div>
-                <div class="flex justify-between items-center mb-5"><span class="course-code text-blue-600 text-base">{{ group.code }}</span><span :class="getTypeStyle(group.type)" class="text-[9px] px-2.5 py-1 rounded-lg font-black uppercase tracking-tighter">{{ group.type }}</span></div>
-                <div class="flex justify-between items-end">
-                    <div class="flex-1 pr-4">
-                        <div class="text-xl md:text-2xl font-black font-rounded tracking-tight" :class="isToday(group.date) ? 'text-red-500' : 'text-gray-800'">{{ group.date }} <span class="text-sm md:text-base font-bold text-gray-500 ml-1">({{ getWeekdayLabel(group.date) }})</span></div>
-                        <div class="flex flex-wrap gap-1.5 mt-3">
-                            <div v-for="s in group.matchedSessions" :key="s.num" class="inline-flex rounded-xl overflow-hidden border border-gray-200/50">
-                                <button @click.stop="copySingleSession(group, s)" class="bg-gray-100 hover:bg-blue-600 hover:text-white text-gray-700 text-[10px] px-2.5 py-1 font-bold transition-all flex items-center gap-1 group/btn"><span>第 {{ s.num }} 堂 ({{ s.time }})</span><i class="fa-regular fa-copy text-[9px] opacity-40 group-hover/btn:opacity-100"></i></button>
-                                <button @click.stop="toggleSelection(group, s)" :aria-label="isSelected(group, s) ? '從已選項目移除' : '加入已選項目'" :class="isSelected(group, s) ? 'bg-green-600 text-white' : 'bg-white text-blue-600 hover:bg-blue-50'" class="px-2 py-1 text-[10px] font-black transition-colors border-l border-gray-200/50"><i :class="isSelected(group, s) ? 'fa-solid fa-check' : 'fa-solid fa-plus'"></i></button>
-                            </div>
-                        </div>
-                        <div class="text-[11px] text-gray-400 font-bold mt-3 tracking-wide uppercase italic">{{ group.language }}</div>
-                    </div>
-                    <div class="text-right min-w-[90px] self-end mb-1"><div v-if="isToday(group.date)" class="text-[9px] font-black text-red-500 mb-1 animate-bounce">TODAY</div><div v-if="group.matchedSessions.length > 1" class="text-[9px] font-black text-orange-500 tracking-tight uppercase"><i class="fa-solid fa-bolt"></i> 點堂數單複製</div><div v-else class="text-[9px] font-bold text-gray-400 tracking-tight uppercase">點卡片複製</div></div>
-                </div>
-            </div>
-        </div>
-
-        <div v-else-if="!loading && !loadError" class="text-center py-24"><div class="bg-gray-100 w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-6 rotate-12"><i class="fa-solid fa-calendar-xmark text-gray-300 text-2xl"></i></div><p class="text-gray-600 font-bold text-sm">沒有符合條件的課程</p><p class="text-gray-400 text-xs mt-2">可嘗試增加日期範圍或顯示 Full / Pending 課堂</p><button @click="resetAll" class="mt-4 text-blue-500 font-bold text-xs hover:underline">重設所有篩選</button></div>
-        <button @click="resetAll" aria-label="重設所有篩選" class="md:hidden fixed bottom-8 right-8 bg-black text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center active:scale-90 transition-transform z-50"><i class="fa-solid fa-arrow-rotate-left"></i></button>
+  <div class="ios-card p-6 mb-8 border border-white relative">
+    <div class="mb-6 pb-6 border-b border-gray-100">
+      <label for="originalCourse" class="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">學員原本課程編號</label>
+      <div class="relative"><i class="fa-solid fa-graduation-cap absolute left-4 top-1/2 -translate-y-1/2 text-blue-500 text-xs"></i><input id="originalCourse" v-model.trim="originalCourseCode" type="search" autocomplete="off" spellcheck="false" placeholder="例如：IC2609" class="w-full pl-10 pr-4 py-3 bg-blue-50/70 rounded-2xl text-sm font-black uppercase border-2 border-transparent focus:border-blue-500 outline-none"></div>
+      <p v-if="sourceCourse" class="mt-2 text-xs font-bold text-green-600"><i class="fa-solid fa-circle-check mr-1"></i> 已自動選擇 {{ sourceCourse.level }}、{{ sourceCourse.language }}，並排除 {{ sourceCourse.code }}</p>
+      <p v-else-if="originalCourseCode" class="mt-2 text-xs font-bold text-amber-600"><i class="fa-solid fa-circle-exclamation mr-1"></i> 找不到完全相符的課程編號，請檢查輸入</p>
+      <p v-else class="mt-2 text-[11px] text-gray-400">輸入後會自動設定 Level 及語言；亦可略過並手動篩選。</p>
     </div>
 
-    <script>
-        const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
-        createApp({
-            setup() {
-                const allCourses = ref([]), selectedLevel = ref('Level 2'), selectedLanguage = ref('All'), selectedType = ref('All'), targetSessions = ref([1]), searchQuery = ref(''), includePast = ref(false), dateWindow = ref('all'), availableOnly = ref(true), loading = ref(true), loadError = ref(''), originalCourseCode = ref(''), selectedOptions = ref([]), sessionSelectionTouched = ref(false);
-                const levels = ['Level 2', 'Level 3'];
-                const languages = ['All', 'English', 'Mandarin', 'Cantonese'];
-                const courseTypes = ['All', 'Weekday Evening', 'Weekend Intensive', 'Weekday Daytime', 'Consecutive'];
-                const sessionRange = computed(() => Array.from({length: selectedLevel.value === 'Level 2' ? 8 : 18}, (_, i) => i + 1));
-                const sourceCourse = computed(() => { const code = originalCourseCode.value.trim().toLowerCase(); return code ? allCourses.value.find(course => course.code.toLowerCase() === code) || null : null; });
+    <div class="flex bg-gray-200 p-1 rounded-2xl mb-6 max-w-sm mx-auto"><button v-for="l in levels" :key="l" @click="selectedLevel=l;resetSession()" :class="selectedLevel===l?'bg-white shadow-md text-black':'text-gray-500'" class="flex-1 py-2 rounded-xl text-sm font-bold">{{l}}</button></div>
 
-                watch(sourceCourse, course => { if (!course) return; selectedLevel.value = course.level; selectedLanguage.value = course.language; selectedType.value = 'All'; targetSessions.value = [1]; sessionSelectionTouched.value = false; selectedOptions.value = []; });
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 border-b border-gray-100 pb-6">
+      <div class="relative"><span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400"><i class="fa-solid fa-magnifying-glass text-xs"></i></span><input v-model="searchQuery" type="search" placeholder="篩選補堂課程（例如：IC26）" class="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-2xl text-sm font-semibold border-2 border-transparent focus:border-blue-500 outline-none shadow-inner"></div>
+      <div class="flex items-center justify-between md:justify-end gap-3 px-2"><label class="text-xs font-bold text-gray-500" for="pastToggle">顯示今日以前的課程</label><input type="checkbox" id="pastToggle" v-model="includePast" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded"></div>
+    </div>
 
-                const parseCsvRow = row => { const values=[]; let value='', quoted=false; for(let i=0;i<row.length;i++){ const char=row[i]; if(char==='"'&&row[i+1]==='"'&&quoted){value+='"';i++;} else if(char==='"')quoted=!quoted; else if(char===','&&!quoted){values.push(value.trim());value='';} else value+=char;} values.push(value.trim()); return values; };
-                const parseDate = dateStr => { if(!dateStr||!/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr))return null; const [d,m,y]=dateStr.split('/').map(Number); const result=new Date(y,m-1,d); return result.getFullYear()===y&&result.getMonth()===m-1&&result.getDate()===d?result:null; };
-                const toISODate = dateStr => { const d=parseDate(dateStr); if(!d)return ''; const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; };
-                const getEnglishWeekday = dateStr => { const d=parseDate(dateStr); return d ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()] : ''; };
-                const getWeekdayLabel = dateStr => { const d=parseDate(dateStr); return d ? ['日','一','二','三','四','五','六'][d.getDay()] : ''; };
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div><div class="flex items-center gap-2 text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest"><i class="fa-solid fa-language text-blue-500"></i> 語言</div><select v-model="selectedLanguage" class="w-full p-4 bg-gray-50 rounded-2xl text-sm font-bold border-2 border-transparent focus:border-blue-500 outline-none shadow-inner"><option v-for="opt in languages" :key="opt">{{opt}}</option></select></div>
+      <div><div class="flex items-center gap-2 text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest"><i class="fa-solid fa-layer-group text-purple-500"></i> 課程模式</div><select v-model="selectedType" class="w-full p-4 bg-gray-50 rounded-2xl text-sm font-bold border-2 border-transparent focus:border-blue-500 outline-none shadow-inner"><option v-for="type in courseTypes" :key="type">{{type}}</option></select></div>
+    </div>
 
-                const loadData = async () => { loading.value=true; loadError.value=''; try { const res=await fetch('courses.csv',{cache:'no-store'}); if(!res.ok)throw new Error(`HTTP ${res.status}`); const text=await res.text(); const rows=text.replace(/\r/g,'').split('\n').filter(r=>r.trim()!=='').slice(1); allCourses.value=rows.map(row=>{const cols=parseCsvRow(row),sessions=[]; for(let i=4;i<cols.length;i+=2){if(cols[i])sessions.push({num:sessions.length+1,date:cols[i],time:cols[i+1]||''});} return {code:cols[0],type:cols[1],language:cols[2],level:cols[3],sessions};}).filter(c=>c.code&&c.level&&c.sessions.length); } catch(e){ console.error('CSV 載入失敗：',e); loadError.value='請檢查網絡連線後再試。'; } finally { loading.value=false; } };
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-100">
+      <div><label class="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">日期範圍</label><select v-model="dateWindow" class="w-full p-4 bg-gray-50 rounded-2xl text-sm font-bold outline-none shadow-inner"><option value="all">所有未來課堂</option><option value="7">未來 7 日</option><option value="30">未來 30 日</option></select></div>
+      <label class="flex items-center justify-between md:justify-start gap-3 px-2 py-3 md:pt-7"><input type="checkbox" v-model="availableOnly" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded"><span class="text-xs font-bold text-gray-500">隱藏 Full / Pending 課堂</span></label>
+    </div>
 
-                const filteredCourses = computed(() => { const today=new Date(); today.setHours(0,0,0,0); const latestDate=dateWindow.value==='all'?null:new Date(today); if(latestDate)latestDate.setDate(latestDate.getDate()+Number(dateWindow.value)); const groupsMap=new Map(); allCourses.value.forEach(c=>{ if(sourceCourse.value&&c.code===sourceCourse.value.code)return; if(c.level!==selectedLevel.value)return; if(selectedLanguage.value!=='All'&&c.language!==selectedLanguage.value)return; if(selectedType.value!=='All'&&c.type!==selectedType.value)return; if(searchQuery.value.trim()&&!c.code.toLowerCase().includes(searchQuery.value.toLowerCase().trim()))return; c.sessions.forEach(s=>{ if(!targetSessions.value.includes(s.num))return; const sDate=parseDate(s.date); if(!sDate)return; if(!includePast.value&&sDate<today)return; if(latestDate&&sDate>latestDate)return; if(availableOnly.value&&['full','pending'].includes(s.time.toLowerCase()))return; const key=`${c.code}_${s.date}`; if(!groupsMap.has(key))groupsMap.set(key,{id:key,code:c.code,type:c.type,language:c.language,date:s.date,matchedSessions:[]}); groupsMap.get(key).matchedSessions.push(s); }); }); return Array.from(groupsMap.values()).map(g=>{g.matchedSessions.sort((a,b)=>a.num-b.num);return g;}).sort((a,b)=>parseDate(a.date)-parseDate(b.date)); });
+    <div class="mt-6 pt-4 border-t border-gray-50"><div class="flex items-center justify-between text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest"><span>選擇堂數 (可多選)</span><button @click="toggleAllSessions" class="text-blue-500 hover:underline text-[11px] font-bold">全選 / 全不選</button></div><div class="flex flex-wrap gap-2 max-h-24 overflow-y-auto p-1 bg-gray-50 rounded-2xl"><button v-for="n in sessionRange" :key="n" @click="toggleSession(n)" :class="targetSessions.includes(n)?'bg-orange-500 text-white shadow-sm':'bg-white text-gray-600 hover:bg-gray-100'" class="px-3 py-1.5 rounded-xl text-xs font-bold min-w-[55px]">第 {{n}} 堂</button></div></div>
+  </div>
 
-                const getTypeStyle = type => ({'Weekday Evening':'bg-blue-50 text-blue-600 border border-blue-100','Weekend Intensive':'bg-orange-50 text-orange-600 border border-orange-100','Weekday Daytime':'bg-green-50 text-green-600 border border-green-100','Consecutive':'bg-purple-50 text-purple-600 border border-purple-100'}[type]||'bg-gray-50 text-gray-500 border border-gray-100');
-                const isToday = dateStr => { const sessionDate=parseDate(dateStr),today=new Date(); return !!sessionDate&&sessionDate.getDate()===today.getDate()&&sessionDate.getMonth()===today.getMonth()&&sessionDate.getFullYear()===today.getFullYear(); };
-                const showToast = msg => { const toast=document.createElement('div'); toast.innerText=msg; toast.className='fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-900/95 backdrop-blur-sm text-white px-5 py-2.5 rounded-full font-bold text-xs z-[100] shadow-xl tracking-wider transition-all animate-bounce'; document.body.appendChild(toast); setTimeout(()=>{toast.style.opacity='0';setTimeout(()=>toast.remove(),300);},1200); };
-                const writeClipboard = async (text,successMessage) => { try { if(navigator.clipboard&&window.isSecureContext)await navigator.clipboard.writeText(text); else { const area=document.createElement('textarea'); area.value=text; area.style.position='fixed'; area.style.opacity='0'; document.body.appendChild(area); area.select(); if(!document.execCommand('copy'))throw new Error('Copy failed'); area.remove(); } showToast(successMessage); } catch(error){ console.error('複製失敗：',error); showToast('未能複製，請重試'); } };
+  <div v-if="selectedOptions.length" class="ios-card p-5 mb-6 border-2 border-green-100 bg-green-50/30">
+    <div class="flex items-center justify-between gap-3 mb-4"><div><p class="font-black text-gray-900">WhatsApp Options · {{selectedOptions.length}}</p><p class="text-[10px] text-gray-400 mt-1">只用作一次過傳幾個選擇俾學生；確認補堂請直接用下面藍色 Confirm。</p></div><button @click="clearSelections" class="text-xs font-bold text-gray-400 hover:text-red-500">清除</button></div>
+    <div class="flex flex-wrap gap-2 mb-4"><button v-for="item in selectedOptions" :key="item.id" @click="removeSelection(item.id)" class="bg-white border border-green-100 rounded-xl px-3 py-2 text-[10px] font-bold text-gray-700 hover:text-red-500">{{item.code}} · S{{item.sessionNum}} · {{item.date}} <i class="fa-solid fa-xmark ml-1"></i></button></div>
+    <button @click="copySelectedOptions" class="w-full bg-green-600 hover:bg-green-700 text-white rounded-2xl py-3 text-sm font-black"><i class="fa-brands fa-whatsapp mr-2"></i>複製 WhatsApp 訊息</button>
+  </div>
 
-                const copyFullGroup = group => { const engDay=getEnglishWeekday(group.date); let sessionDetails=''; if(group.matchedSessions.length===1){const s=group.matchedSessions[0];sessionDetails=`Session: Session ${s.num}\nDate: ${group.date} (${engDay}) (${s.time})`;} else {sessionDetails=`Date: ${group.date} (${engDay})\nSessions (${group.matchedSessions.length} sessions total):\n`+group.matchedSessions.map(s=>`  • Session ${s.num}: ${s.time}`).join('\n');} const text=`【Course Code】${group.code}\nCourse Type: ${group.type}\nLanguage: ${group.language}\n${sessionDetails}`; writeClipboard(text,`已複製 ${group.code} 的課堂資料`); };
-                const copySingleSession = (group,session) => { const engDay=getEnglishWeekday(group.date); const text=`【Course Code】${group.code}\nCourse Type: ${group.type}\nLanguage: ${group.language}\nSession: Session ${session.num}\nDate: ${group.date} (${engDay}) (${session.time})`; writeClipboard(text,`已複製 ${group.code} 第 ${session.num} 堂`); };
-                const selectionId=(group,session)=>`${group.code}_${group.date}_${session.num}`;
-                const isSelected=(group,session)=>selectedOptions.value.some(item=>item.id===selectionId(group,session));
-                const toggleSelection=(group,session)=>{const id=selectionId(group,session),index=selectedOptions.value.findIndex(item=>item.id===id); if(index>=0){selectedOptions.value.splice(index,1);return;} selectedOptions.value.push({id,code:group.code,type:group.type,language:group.language,date:group.date,sessionNum:session.num,time:session.time}); selectedOptions.value.sort((a,b)=>parseDate(a.date)-parseDate(b.date)||a.sessionNum-b.sessionNum);};
-                const removeSelection=id=>{selectedOptions.value=selectedOptions.value.filter(item=>item.id!==id);};
-                const clearSelections=()=>{selectedOptions.value=[];};
-                const copySelectedOptions=()=>{const sourceLine=sourceCourse.value?`Original Course: ${sourceCourse.value.code}\n\n`:''; const choices=selectedOptions.value.map((item,index)=>`${index+1}. ${item.code}\n   Session ${item.sessionNum}: ${item.date} (${getEnglishWeekday(item.date)}), ${item.time}\n   ${item.language} · ${item.type}`).join('\n\n'); writeClipboard(`Please find the available make-up class option(s) below:\n\n${sourceLine}${choices}\n\nPlease let us know which option you prefer. Thank you.`,`已複製 ${selectedOptions.value.length} 個補堂選項`);};
-                const confirmMakeup=item=>{ const params=new URLSearchParams(); const original=sourceCourse.value?.code||originalCourseCode.value.trim().toUpperCase(); if(original)params.set('originalCourse',original); const originalSession=sourceCourse.value?.sessions?.find(s=>s.num===item.sessionNum); if(originalSession?.date)params.set('originalDate',toISODate(originalSession.date)); params.set('makeupCourse',item.code); params.set('makeupDate',toISODate(item.date)); params.set('session',String(item.sessionNum)); window.location.href=`requests.html?${params.toString()}`; };
+  <div v-if="!loading&&!loadError" class="flex items-center justify-between mb-4 px-1"><p class="text-sm font-black text-gray-700">找到 {{filteredCourses.length}} 個選擇</p><p class="text-[10px] font-bold text-gray-400">Confirm = 學生已確認補堂</p></div>
+  <div v-if="loading" class="text-center py-24"><i class="fa-solid fa-circle-notch fa-spin text-blue-500 text-2xl mb-4"></i><p class="text-gray-500 font-bold text-sm">正在載入課程資料…</p></div>
+  <div v-else-if="loadError" class="ios-card border border-red-100 p-8 text-center"><p class="font-black">未能載入課程資料</p><button @click="loadData" class="mt-5 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold">重新載入</button></div>
 
-                const toggleSession=n=>{if(!sessionSelectionTouched.value){sessionSelectionTouched.value=true;if(n!==1){targetSessions.value=[n];return;}} const index=targetSessions.value.indexOf(n); if(index>-1){if(targetSessions.value.length>1)targetSessions.value.splice(index,1);}else{targetSessions.value.push(n);targetSessions.value.sort((a,b)=>a-b);}};
-                const toggleAllSessions=()=>{sessionSelectionTouched.value=true;targetSessions.value=targetSessions.value.length===sessionRange.value.length?[1]:[...sessionRange.value];};
-                const resetAll=()=>{selectedLevel.value='Level 2';selectedLanguage.value='All';selectedType.value='All';targetSessions.value=[1];searchQuery.value='';includePast.value=false;dateWindow.value='all';availableOnly.value=true;originalCourseCode.value='';selectedOptions.value=[];sessionSelectionTouched.value=false;};
-                const resetSession=()=>{targetSessions.value=[1];sessionSelectionTouched.value=false;};
-                const applyUrlParameters=async()=>{const params=new URLSearchParams(window.location.search),courseParam=(params.get('course')||'').trim().toUpperCase(),sessionParam=params.get('sessions')||params.get('session')||''; if(courseParam)originalCourseCode.value=courseParam; await nextTick(); const maxSession=selectedLevel.value==='Level 3'?18:8; const requestedSessions=[...new Set((sessionParam.match(/\d+/g)||[]).map(Number).filter(n=>n>=1&&n<=maxSession))].sort((a,b)=>a-b); if(requestedSessions.length){targetSessions.value=requestedSessions;sessionSelectionTouched.value=true;}};
-                onMounted(async()=>{await loadData();await applyUrlParameters();});
+  <div v-else-if="filteredCourses.length" class="course-grid">
+    <div v-for="group in filteredCourses" :key="group.id" class="ios-card p-6 mb-4 md:mb-0 border border-transparent hover:border-blue-200">
+      <div class="flex justify-between items-center mb-4"><span class="course-code text-blue-600 text-base">{{group.code}}</span><span :class="getTypeStyle(group.type)" class="text-[9px] px-2.5 py-1 rounded-lg font-black uppercase">{{group.type}}</span></div>
+      <div class="text-xl md:text-2xl font-black font-rounded tracking-tight" :class="isToday(group.date)?'text-red-500':'text-gray-800'">{{group.date}} <span class="text-sm md:text-base font-bold text-gray-500">({{getWeekdayLabel(group.date)}})</span></div>
+      <div class="text-[11px] text-gray-400 font-bold mt-1 uppercase italic">{{group.language}}</div>
 
-                return { levels,selectedLevel,languages,selectedLanguage,courseTypes,selectedType,targetSessions,sessionRange,filteredCourses,searchQuery,includePast,dateWindow,availableOnly,loading,loadError,loadData,originalCourseCode,sourceCourse,selectedOptions,getTypeStyle,isToday,copyFullGroup,copySingleSession,resetAll,resetSession,getWeekdayLabel,toggleSession,toggleAllSessions,toggleSelection,isSelected,removeSelection,clearSelections,copySelectedOptions,confirmMakeup };
-            }
-        }).mount('#app');
-    </script>
-</body>
-</html>
+      <div class="space-y-2 mt-4">
+        <div v-for="s in group.matchedSessions" :key="s.num" class="bg-gray-50 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center gap-3">
+          <button @click="copySingleSession(group,s)" class="flex-1 text-left"><div class="text-xs font-black text-gray-800">Session {{s.num}}</div><div class="text-[11px] text-gray-500 mt-0.5">{{s.time}} <i class="fa-regular fa-copy ml-1 opacity-40"></i></div></button>
+          <div class="flex gap-2">
+            <button @click="toggleSelection(group,s)" :class="isSelected(group,s)?'bg-green-100 text-green-700':'bg-white text-gray-500'" class="px-3 py-2 rounded-xl text-[11px] font-bold border border-gray-200" title="Add to WhatsApp options"><i :class="isSelected(group,s)?'fa-solid fa-check':'fa-solid fa-plus'"></i> Option</button>
+            <button @click="confirmDirect(group,s)" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[11px] font-black"><i class="fa-solid fa-check mr-1"></i>Confirm</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div v-else-if="!loading&&!loadError" class="text-center py-24"><p class="text-gray-600 font-bold text-sm">沒有符合條件的課程</p><button @click="resetAll" class="mt-4 text-blue-500 font-bold text-xs">重設所有篩選</button></div>
+  <button @click="resetAll" class="md:hidden fixed bottom-8 right-8 bg-black text-white w-14 h-14 rounded-full shadow-2xl z-50"><i class="fa-solid fa-arrow-rotate-left"></i></button>
+</div>
+
+<script>
+const{createApp,ref,computed,onMounted,watch,nextTick}=Vue;
+createApp({setup(){
+const allCourses=ref([]),selectedLevel=ref('Level 2'),selectedLanguage=ref('All'),selectedType=ref('All'),targetSessions=ref([1]),searchQuery=ref(''),includePast=ref(false),dateWindow=ref('all'),availableOnly=ref(true),loading=ref(true),loadError=ref(''),originalCourseCode=ref(''),selectedOptions=ref([]),sessionSelectionTouched=ref(false);
+const levels=['Level 2','Level 3'],languages=['All','English','Mandarin','Cantonese'],courseTypes=['All','Weekday Evening','Weekend Intensive','Weekday Daytime','Consecutive'];
+const sessionRange=computed(()=>Array.from({length:selectedLevel.value==='Level 2'?8:18},(_,i)=>i+1));
+const sourceCourse=computed(()=>{const code=originalCourseCode.value.trim().toLowerCase();return code?allCourses.value.find(c=>c.code.toLowerCase()===code)||null:null});
+watch(sourceCourse,c=>{if(!c)return;selectedLevel.value=c.level;selectedLanguage.value=c.language;selectedType.value='All';targetSessions.value=[1];sessionSelectionTouched.value=false;selectedOptions.value=[]});
+const parseCsvRow=row=>{const v=[];let x='',q=false;for(let i=0;i<row.length;i++){const ch=row[i];if(ch==='"'&&row[i+1]==='"'&&q){x+='"';i++}else if(ch==='"')q=!q;else if(ch===','&&!q){v.push(x.trim());x=''}else x+=ch}v.push(x.trim());return v};
+const parseDate=s=>{if(!s||!/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s))return null;const[d,m,y]=s.split('/').map(Number),r=new Date(y,m-1,d);return r.getFullYear()===y&&r.getMonth()===m-1&&r.getDate()===d?r:null};
+const toISODate=s=>{const d=parseDate(s);return d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`:''};
+const getWeekdayLabel=s=>{const d=parseDate(s);return d?['日','一','二','三','四','五','六'][d.getDay()]:''},getEnglishWeekday=s=>{const d=parseDate(s);return d?['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]:''};
+const loadData=async()=>{loading.value=true;loadError.value='';try{const res=await fetch('courses.csv',{cache:'no-store'});if(!res.ok)throw new Error();const text=await res.text(),rows=text.replace(/\r/g,'').split('\n').filter(r=>r.trim()).slice(1);allCourses.value=rows.map(row=>{const c=parseCsvRow(row),sessions=[];for(let i=4;i<c.length;i+=2)if(c[i])sessions.push({num:sessions.length+1,date:c[i],time:c[i+1]||''});return{code:c[0],type:c[1],language:c[2],level:c[3],sessions}}).filter(c=>c.code&&c.level&&c.sessions.length)}catch(e){loadError.value='請檢查網絡連線後再試。'}finally{loading.value=false}};
+const filteredCourses=computed(()=>{const today=new Date();today.setHours(0,0,0,0);const latest=dateWindow.value==='all'?null:new Date(today);if(latest)latest.setDate(latest.getDate()+Number(dateWindow.value));const map=new Map();allCourses.value.forEach(c=>{if(sourceCourse.value&&c.code===sourceCourse.value.code)return;if(c.level!==selectedLevel.value)return;if(selectedLanguage.value!=='All'&&c.language!==selectedLanguage.value)return;if(selectedType.value!=='All'&&c.type!==selectedType.value)return;if(searchQuery.value.trim()&&!c.code.toLowerCase().includes(searchQuery.value.toLowerCase().trim()))return;c.sessions.forEach(s=>{if(!targetSessions.value.includes(s.num))return;const d=parseDate(s.date);if(!d)return;if(!includePast.value&&d<today)return;if(latest&&d>latest)return;if(availableOnly.value&&['full','pending'].includes(s.time.toLowerCase()))return;const key=`${c.code}_${s.date}`;if(!map.has(key))map.set(key,{id:key,code:c.code,type:c.type,language:c.language,date:s.date,matchedSessions:[]});map.get(key).matchedSessions.push(s)})});return Array.from(map.values()).map(g=>{g.matchedSessions.sort((a,b)=>a.num-b.num);return g}).sort((a,b)=>parseDate(a.date)-parseDate(b.date))});
+const getTypeStyle=t=>({'Weekday Evening':'bg-blue-50 text-blue-600 border border-blue-100','Weekend Intensive':'bg-orange-50 text-orange-600 border border-orange-100','Weekday Daytime':'bg-green-50 text-green-600 border border-green-100','Consecutive':'bg-purple-50 text-purple-600 border border-purple-100'}[t]||'bg-gray-50 text-gray-500 border border-gray-100');
+const isToday=s=>{const d=parseDate(s),t=new Date();return!!d&&d.getDate()===t.getDate()&&d.getMonth()===t.getMonth()&&d.getFullYear()===t.getFullYear()};
+const toast=msg=>{const el=document.createElement('div');el.innerText=msg;el.className='fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-5 py-2.5 rounded-full font-bold text-xs z-[100] shadow-xl';document.body.appendChild(el);setTimeout(()=>el.remove(),1400)};
+const writeClipboard=async(text,msg)=>{try{await navigator.clipboard.writeText(text);toast(msg)}catch(e){toast('未能複製，請重試')}};
+const copySingleSession=(g,s)=>writeClipboard(`【Course Code】${g.code}\nCourse Type: ${g.type}\nLanguage: ${g.language}\nSession: Session ${s.num}\nDate: ${g.date} (${getEnglishWeekday(g.date)}) (${s.time})`,`已複製 ${g.code} 第 ${s.num} 堂`);
+const selectionId=(g,s)=>`${g.code}_${g.date}_${s.num}`,isSelected=(g,s)=>selectedOptions.value.some(i=>i.id===selectionId(g,s));
+const toggleSelection=(g,s)=>{const id=selectionId(g,s),idx=selectedOptions.value.findIndex(i=>i.id===id);if(idx>=0){selectedOptions.value.splice(idx,1);return}selectedOptions.value.push({id,code:g.code,type:g.type,language:g.language,date:g.date,sessionNum:s.num,time:s.time});selectedOptions.value.sort((a,b)=>parseDate(a.date)-parseDate(b.date)||a.sessionNum-b.sessionNum)};
+const removeSelection=id=>selectedOptions.value=selectedOptions.value.filter(i=>i.id!==id),clearSelections=()=>selectedOptions.value=[];
+const copySelectedOptions=()=>{const source=sourceCourse.value?`Original Course: ${sourceCourse.value.code}\n\n`:'';const choices=selectedOptions.value.map((i,n)=>`${n+1}. ${i.code}\n   Session ${i.sessionNum}: ${i.date} (${getEnglishWeekday(i.date)}), ${i.time}\n   ${i.language} · ${i.type}`).join('\n\n');writeClipboard(`Please find the available make-up class option(s) below:\n\n${source}${choices}\n\nPlease let us know which option you prefer. Thank you.`,`已複製 ${selectedOptions.value.length} 個補堂選項`)};
+const confirmMakeup=item=>{const p=new URLSearchParams(),original=sourceCourse.value?.code||originalCourseCode.value.trim().toUpperCase();if(original)p.set('originalCourse',original);const orig=sourceCourse.value?.sessions?.find(s=>s.num===item.sessionNum);if(orig?.date)p.set('originalDate',toISODate(orig.date));p.set('makeupCourse',item.code);p.set('makeupDate',toISODate(item.date));p.set('session',String(item.sessionNum));location.href=`requests.html?${p}`};
+const confirmDirect=(g,s)=>confirmMakeup({code:g.code,date:g.date,sessionNum:s.num,time:s.time,type:g.type,language:g.language});
+const toggleSession=n=>{if(!sessionSelectionTouched.value){sessionSelectionTouched.value=true;if(n!==1){targetSessions.value=[n];return}}const i=targetSessions.value.indexOf(n);if(i>-1){if(targetSessions.value.length>1)targetSessions.value.splice(i,1)}else{targetSessions.value.push(n);targetSessions.value.sort((a,b)=>a-b)}};
+const toggleAllSessions=()=>{sessionSelectionTouched.value=true;targetSessions.value=targetSessions.value.length===sessionRange.value.length?[1]:[...sessionRange.value]},resetSession=()=>{targetSessions.value=[1];sessionSelectionTouched.value=false};
+const resetAll=()=>{selectedLevel.value='Level 2';selectedLanguage.value='All';selectedType.value='All';targetSessions.value=[1];searchQuery.value='';includePast.value=false;dateWindow.value='all';availableOnly.value=true;originalCourseCode.value='';selectedOptions.value=[];sessionSelectionTouched.value=false};
+const applyUrlParameters=async()=>{const p=new URLSearchParams(location.search),c=(p.get('course')||'').trim().toUpperCase(),sp=p.get('sessions')||p.get('session')||'';if(c)originalCourseCode.value=c;await nextTick();const max=selectedLevel.value==='Level 3'?18:8,req=[...new Set((sp.match(/\d+/g)||[]).map(Number).filter(n=>n>=1&&n<=max))].sort((a,b)=>a-b);if(req.length){targetSessions.value=req;sessionSelectionTouched.value=true}};
+onMounted(async()=>{await loadData();await applyUrlParameters()});
+return{levels,selectedLevel,languages,selectedLanguage,courseTypes,selectedType,targetSessions,sessionRange,filteredCourses,searchQuery,includePast,dateWindow,availableOnly,loading,loadError,loadData,originalCourseCode,sourceCourse,selectedOptions,getTypeStyle,isToday,copySingleSession,resetAll,resetSession,getWeekdayLabel,toggleSession,toggleAllSessions,toggleSelection,isSelected,removeSelection,clearSelections,copySelectedOptions,confirmDirect}
+}}).mount('#app');
+</script>
+</body></html>
