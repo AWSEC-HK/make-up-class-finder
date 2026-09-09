@@ -4,7 +4,16 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><meta name="theme-color" content="#2563eb"><meta name="description" content="快速搜尋合適的 AWSEC make-up class 課堂"><title>Make-up Class Finder</title>
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default">
 <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-<style>body{background:#f2f2f7;-webkit-tap-highlight-color:transparent}.ios-card{background:#fff;border-radius:20px;box-shadow:0 4px 20px rgba(0,0,0,.04)}.font-rounded{font-family:ui-rounded,system-ui,-apple-system,sans-serif}.course-code{font-family:'Courier New',Courier,monospace;letter-spacing:.05em;font-weight:800}select{-webkit-appearance:none;appearance:none;cursor:pointer}@media(min-width:768px){.course-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}}[v-cloak]{display:none}:focus-visible{outline:3px solid rgba(59,130,246,.45);outline-offset:3px}</style>
+<style>
+body{background:#f2f2f7;-webkit-tap-highlight-color:transparent}
+.ios-card{background:#fff;border-radius:20px;box-shadow:0 4px 20px rgba(0,0,0,.04)}
+.font-rounded{font-family:ui-rounded,system-ui,-apple-system,sans-serif}
+.course-code{font-family:'Courier New',Courier,monospace;letter-spacing:.05em;font-weight:800}
+select{-webkit-appearance:none;appearance:none;cursor:pointer}
+@media(min-width:768px){.course-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}}
+[v-cloak]{display:none}
+:focus-visible{outline:3px solid rgba(59,130,246,.45);outline-offset:3px}
+</style>
 </head>
 <body>
 <div id="app" v-cloak class="max-w-4xl mx-auto p-4 md:p-10 pb-24">
@@ -43,30 +52,48 @@
   </div>
 
   <div v-if="selectedOptions.length" class="ios-card p-5 mb-6 border-2 border-green-100 bg-green-50/30">
-    <div class="flex items-center justify-between gap-3 mb-4"><div><p class="font-black text-gray-900">WhatsApp Options · {{selectedOptions.length}}</p><p class="text-[10px] text-gray-400 mt-1">只用作一次過傳幾個選擇俾學生；確認補堂請直接用下面藍色 Confirm。</p></div><button @click="clearSelections" class="text-xs font-bold text-gray-400 hover:text-red-500">清除</button></div>
-    <div class="flex flex-wrap gap-2 mb-4"><button v-for="item in selectedOptions" :key="item.id" @click="removeSelection(item.id)" class="bg-white border border-green-100 rounded-xl px-3 py-2 text-[10px] font-bold text-gray-700 hover:text-red-500">{{item.code}} · S{{item.sessionNum}} · {{item.date}} <i class="fa-solid fa-xmark ml-1"></i></button></div>
+    <div class="flex items-center justify-between gap-3 mb-4">
+      <div>
+        <p class="font-black text-gray-900">WhatsApp Options · {{selectedOptions.length}}</p>
+        <p class="text-[10px] text-gray-400 mt-1">每個 Course 為一個完整選項；多堂補堂會自動合併顯示。</p>
+      </div>
+      <button @click="clearSelections" class="text-xs font-bold text-gray-400 hover:text-red-500">清除</button>
+    </div>
+    <div class="space-y-2 mb-4">
+      <button v-for="item in selectedOptions" :key="item.code" @click="removeSelection(item.code)" class="w-full text-left bg-white border border-green-100 rounded-xl px-3 py-2 text-[10px] font-bold text-gray-700 hover:text-red-500">
+        <div class="flex justify-between items-center gap-2">
+          <span>{{item.code}} · {{ item.sessions.map(s=>'S'+s.sessionNum).join(' + ') }}</span>
+          <i class="fa-solid fa-xmark"></i>
+        </div>
+      </button>
+    </div>
     <button @click="copySelectedOptions" class="w-full bg-green-600 hover:bg-green-700 text-white rounded-2xl py-3 text-sm font-black"><i class="fa-brands fa-whatsapp mr-2"></i>複製 WhatsApp 訊息</button>
   </div>
 
-  <div v-if="!loading&&!loadError" class="flex items-center justify-between mb-4 px-1"><p class="text-sm font-black text-gray-700">找到 {{filteredCourses.length}} 個選擇</p><p class="text-[10px] font-bold text-gray-400">Confirm = 學生已確認補堂</p></div>
+  <div v-if="!loading&&!loadError" class="flex items-center justify-between mb-4 px-1"><p class="text-sm font-black text-gray-700">找到 {{filteredCourses.length}} 個 Course 選擇</p><p class="text-[10px] font-bold text-gray-400">Confirm = 學生已確認單一補堂</p></div>
   <div v-if="loading" class="text-center py-24"><i class="fa-solid fa-circle-notch fa-spin text-blue-500 text-2xl mb-4"></i><p class="text-gray-500 font-bold text-sm">正在載入課程資料…</p></div>
   <div v-else-if="loadError" class="ios-card border border-red-100 p-8 text-center"><p class="font-black">未能載入課程資料</p><button @click="loadData" class="mt-5 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold">重新載入</button></div>
 
   <div v-else-if="filteredCourses.length" class="course-grid">
-    <div v-for="group in filteredCourses" :key="group.id" class="ios-card p-6 mb-4 md:mb-0 border border-transparent hover:border-blue-200">
-      <div class="flex justify-between items-center mb-4"><span class="course-code text-blue-600 text-base">{{group.code}}</span><span :class="getTypeStyle(group.type)" class="text-[9px] px-2.5 py-1 rounded-lg font-black uppercase">{{group.type}}</span></div>
-      <div class="text-xl md:text-2xl font-black font-rounded tracking-tight" :class="isToday(group.date)?'text-red-500':'text-gray-800'">{{group.date}} <span class="text-sm md:text-base font-bold text-gray-500">({{getWeekdayLabel(group.date)}})</span></div>
-      <div class="text-[11px] text-gray-400 font-bold mt-1 uppercase italic">{{group.language}}</div>
+    <div v-for="group in filteredCourses" :key="group.code" class="ios-card p-6 mb-4 md:mb-0 border border-transparent hover:border-blue-200">
+      <div class="flex justify-between items-center mb-2"><span class="course-code text-blue-600 text-base">{{group.code}}</span><span :class="getTypeStyle(group.type)" class="text-[9px] px-2.5 py-1 rounded-lg font-black uppercase">{{group.type}}</span></div>
+      <div class="text-[11px] text-gray-400 font-bold uppercase italic">{{group.language}}</div>
 
       <div class="space-y-2 mt-4">
         <div v-for="s in group.matchedSessions" :key="s.num" class="bg-gray-50 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center gap-3">
-          <button @click="copySingleSession(group,s)" class="flex-1 text-left"><div class="text-xs font-black text-gray-800">Session {{s.num}}</div><div class="text-[11px] text-gray-500 mt-0.5">{{s.time}} <i class="fa-regular fa-copy ml-1 opacity-40"></i></div></button>
-          <div class="flex gap-2">
-            <button @click="toggleSelection(group,s)" :class="isSelected(group,s)?'bg-green-100 text-green-700':'bg-white text-gray-500'" class="px-3 py-2 rounded-xl text-[11px] font-bold border border-gray-200" title="Add to WhatsApp options"><i :class="isSelected(group,s)?'fa-solid fa-check':'fa-solid fa-plus'"></i> Option</button>
-            <button @click="confirmDirect(group,s)" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[11px] font-black"><i class="fa-solid fa-check mr-1"></i>Confirm</button>
-          </div>
+          <button @click="copySingleSession(group,s)" class="flex-1 text-left">
+            <div class="text-xs font-black text-gray-800">Session {{s.num}}</div>
+            <div class="text-[11px] font-bold mt-1" :class="isToday(s.date)?'text-red-500':'text-gray-600'">{{s.date}} ({{getWeekdayLabel(s.date)}})</div>
+            <div class="text-[11px] text-gray-500 mt-0.5">{{s.time}} <i class="fa-regular fa-copy ml-1 opacity-40"></i></div>
+          </button>
+          <button @click="confirmDirect(group,s)" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[11px] font-black"><i class="fa-solid fa-check mr-1"></i>Confirm</button>
         </div>
       </div>
+
+      <button @click="toggleCourseOption(group)" :class="isCourseSelected(group)?'bg-green-100 text-green-700 border-green-200':'bg-white text-gray-600 border-gray-200 hover:bg-green-50 hover:text-green-700'" class="w-full mt-4 px-4 py-3 rounded-2xl text-xs font-black border">
+        <i :class="isCourseSelected(group)?'fa-solid fa-check':'fa-solid fa-plus'" class="mr-2"></i>
+        {{isCourseSelected(group)?'Course Option Added':'Add Course Option'}}
+      </button>
     </div>
   </div>
 
@@ -83,28 +110,93 @@ const sessionRange=computed(()=>Array.from({length:selectedLevel.value==='Level 
 const sourceCourse=computed(()=>{const code=originalCourseCode.value.trim().toLowerCase();return code?allCourses.value.find(c=>c.code.toLowerCase()===code)||null:null});
 watch(sourceCourse,c=>{if(!c)return;selectedLevel.value=c.level;selectedLanguage.value=c.language;selectedType.value='All';targetSessions.value=[1];sessionSelectionTouched.value=false;selectedOptions.value=[]});
 const parseCsvRow=row=>{const v=[];let x='',q=false;for(let i=0;i<row.length;i++){const ch=row[i];if(ch==='"'&&row[i+1]==='"'&&q){x+='"';i++}else if(ch==='"')q=!q;else if(ch===','&&!q){v.push(x.trim());x=''}else x+=ch}v.push(x.trim());return v};
-const parseDate=s=>{if(!s||!/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s))return null;const[d,m,y]=s.split('/').map(Number),r=new Date(y,m-1,d);return r.getFullYear()===y&&r.getMonth()===m-1&&r.getDate()===d?r:null};
+const parseDate=s=>{if(!s||!/^\\d{1,2}\\/\\d{1,2}\\/\\d{4}$/.test(s))return null;const[d,m,y]=s.split('/').map(Number),r=new Date(y,m-1,d);return r.getFullYear()===y&&r.getMonth()===m-1&&r.getDate()===d?r:null};
 const toISODate=s=>{const d=parseDate(s);return d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`:''};
 const getWeekdayLabel=s=>{const d=parseDate(s);return d?['日','一','二','三','四','五','六'][d.getDay()]:''},getEnglishWeekday=s=>{const d=parseDate(s);return d?['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]:''};
 const loadData=async()=>{loading.value=true;loadError.value='';try{const res=await fetch('courses.csv',{cache:'no-store'});if(!res.ok)throw new Error();const text=await res.text(),rows=text.replace(/\r/g,'').split('\n').filter(r=>r.trim()).slice(1);allCourses.value=rows.map(row=>{const c=parseCsvRow(row),sessions=[];for(let i=4;i<c.length;i+=2)if(c[i])sessions.push({num:sessions.length+1,date:c[i],time:c[i+1]||''});return{code:c[0],type:c[1],language:c[2],level:c[3],sessions}}).filter(c=>c.code&&c.level&&c.sessions.length)}catch(e){loadError.value='請檢查網絡連線後再試。'}finally{loading.value=false}};
-const filteredCourses=computed(()=>{const today=new Date();today.setHours(0,0,0,0);const latest=dateWindow.value==='all'?null:new Date(today);if(latest)latest.setDate(latest.getDate()+Number(dateWindow.value));const map=new Map();allCourses.value.forEach(c=>{if(sourceCourse.value&&c.code===sourceCourse.value.code)return;if(c.level!==selectedLevel.value)return;if(selectedLanguage.value!=='All'&&c.language!==selectedLanguage.value)return;if(selectedType.value!=='All'&&c.type!==selectedType.value)return;if(searchQuery.value.trim()&&!c.code.toLowerCase().includes(searchQuery.value.toLowerCase().trim()))return;c.sessions.forEach(s=>{if(!targetSessions.value.includes(s.num))return;const d=parseDate(s.date);if(!d)return;if(!includePast.value&&d<today)return;if(latest&&d>latest)return;if(availableOnly.value&&['full','pending'].includes(s.time.toLowerCase()))return;const key=`${c.code}_${s.date}`;if(!map.has(key))map.set(key,{id:key,code:c.code,type:c.type,language:c.language,date:s.date,matchedSessions:[]});map.get(key).matchedSessions.push(s)})});return Array.from(map.values()).map(g=>{g.matchedSessions.sort((a,b)=>a.num-b.num);return g}).sort((a,b)=>parseDate(a.date)-parseDate(b.date))});
+
+const filteredCourses=computed(()=>{
+  const today=new Date();today.setHours(0,0,0,0);
+  const latest=dateWindow.value==='all'?null:new Date(today);
+  if(latest)latest.setDate(latest.getDate()+Number(dateWindow.value));
+  const groups=[];
+  allCourses.value.forEach(c=>{
+    if(sourceCourse.value&&c.code===sourceCourse.value.code)return;
+    if(c.level!==selectedLevel.value)return;
+    if(selectedLanguage.value!=='All'&&c.language!==selectedLanguage.value)return;
+    if(selectedType.value!=='All'&&c.type!==selectedType.value)return;
+    if(searchQuery.value.trim()&&!c.code.toLowerCase().includes(searchQuery.value.toLowerCase().trim()))return;
+
+    const matched=c.sessions.filter(s=>{
+      if(!targetSessions.value.includes(s.num))return false;
+      const d=parseDate(s.date);
+      if(!d)return false;
+      if(!includePast.value&&d<today)return false;
+      if(latest&&d>latest)return false;
+      if(availableOnly.value&&['full','pending'].includes((s.time||'').toLowerCase()))return false;
+      return true;
+    }).sort((a,b)=>a.num-b.num);
+
+    if(matched.length){
+      groups.push({code:c.code,type:c.type,language:c.language,level:c.level,matchedSessions:matched});
+    }
+  });
+
+  return groups.sort((a,b)=>{
+    const ad=a.matchedSessions.length?parseDate(a.matchedSessions[0].date):null;
+    const bd=b.matchedSessions.length?parseDate(b.matchedSessions[0].date):null;
+    return (ad?.getTime()||0)-(bd?.getTime()||0)||a.code.localeCompare(b.code);
+  });
+});
+
 const getTypeStyle=t=>({'Weekday Evening':'bg-blue-50 text-blue-600 border border-blue-100','Weekend Intensive':'bg-orange-50 text-orange-600 border border-orange-100','Weekday Daytime':'bg-green-50 text-green-600 border border-green-100','Consecutive':'bg-purple-50 text-purple-600 border border-purple-100'}[t]||'bg-gray-50 text-gray-500 border border-gray-100');
 const isToday=s=>{const d=parseDate(s),t=new Date();return!!d&&d.getDate()===t.getDate()&&d.getMonth()===t.getMonth()&&d.getFullYear()===t.getFullYear()};
 const toast=msg=>{const el=document.createElement('div');el.innerText=msg;el.className='fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-5 py-2.5 rounded-full font-bold text-xs z-[100] shadow-xl';document.body.appendChild(el);setTimeout(()=>el.remove(),1400)};
 const writeClipboard=async(text,msg)=>{try{await navigator.clipboard.writeText(text);toast(msg)}catch(e){toast('未能複製，請重試')}};
-const copySingleSession=(g,s)=>writeClipboard(`【Course Code】${g.code}\nCourse Type: ${g.type}\nLanguage: ${g.language}\nSession: Session ${s.num}\nDate: ${g.date} (${getEnglishWeekday(g.date)}) (${s.time})`,`已複製 ${g.code} 第 ${s.num} 堂`);
-const selectionId=(g,s)=>`${g.code}_${g.date}_${s.num}`,isSelected=(g,s)=>selectedOptions.value.some(i=>i.id===selectionId(g,s));
-const toggleSelection=(g,s)=>{const id=selectionId(g,s),idx=selectedOptions.value.findIndex(i=>i.id===id);if(idx>=0){selectedOptions.value.splice(idx,1);return}selectedOptions.value.push({id,code:g.code,type:g.type,language:g.language,date:g.date,sessionNum:s.num,time:s.time});selectedOptions.value.sort((a,b)=>parseDate(a.date)-parseDate(b.date)||a.sessionNum-b.sessionNum)};
-const removeSelection=id=>selectedOptions.value=selectedOptions.value.filter(i=>i.id!==id),clearSelections=()=>selectedOptions.value=[];
-const copySelectedOptions=()=>{const source=sourceCourse.value?`Original Course: ${sourceCourse.value.code}\n\n`:'';const choices=selectedOptions.value.map((i,n)=>`${n+1}. ${i.code}\n   Session ${i.sessionNum}: ${i.date} (${getEnglishWeekday(i.date)}), ${i.time}\n   ${i.language} · ${i.type}`).join('\n\n');writeClipboard(`Please find the available make-up class option(s) below:\n\n${source}${choices}\n\nPlease let us know which option you prefer. Thank you.`,`已複製 ${selectedOptions.value.length} 個補堂選項`)};
+const copySingleSession=(g,s)=>writeClipboard(`【Course Code】${g.code}\nCourse Type: ${g.type}\nLanguage: ${g.language}\nSession: Session ${s.num}\nDate: ${s.date} (${getEnglishWeekday(s.date)}) (${s.time})`,`已複製 ${g.code} 第 ${s.num} 堂`);
+
+const isCourseSelected=g=>selectedOptions.value.some(i=>i.code===g.code);
+const toggleCourseOption=g=>{
+  const idx=selectedOptions.value.findIndex(i=>i.code===g.code);
+  if(idx>=0){selectedOptions.value.splice(idx,1);return}
+  selectedOptions.value.push({
+    code:g.code,
+    type:g.type,
+    language:g.language,
+    sessions:g.matchedSessions.map(s=>({sessionNum:s.num,date:s.date,time:s.time})).sort((a,b)=>a.sessionNum-b.sessionNum)
+  });
+  selectedOptions.value.sort((a,b)=>{
+    const ad=a.sessions.length?parseDate(a.sessions[0].date):null;
+    const bd=b.sessions.length?parseDate(b.sessions[0].date):null;
+    return (ad?.getTime()||0)-(bd?.getTime()||0)||a.code.localeCompare(b.code);
+  });
+};
+const removeSelection=code=>selectedOptions.value=selectedOptions.value.filter(i=>i.code!==code);
+const clearSelections=()=>selectedOptions.value=[];
+
+const copySelectedOptions=()=>{
+  const source=sourceCourse.value?`Original Course: ${sourceCourse.value.code}\n\n`:'';
+  const choices=selectedOptions.value.map((item,n)=>{
+    const sessions=item.sessions.map(s=>`   Session ${s.sessionNum}: ${s.date} (${getEnglishWeekday(s.date)}), ${s.time}`).join('\n');
+    return `Option ${n+1} – ${item.code}\n${sessions}\n   ${item.language} · ${item.type}`;
+  }).join('\n\n');
+  writeClipboard(
+    `Please find the available make-up class option(s) below:\n\n${source}${choices}\n\nPlease let us know which option you prefer. Thank you.`,
+    `已複製 ${selectedOptions.value.length} 個 Course 選項`
+  );
+};
+
 const confirmMakeup=item=>{const p=new URLSearchParams(),original=sourceCourse.value?.code||originalCourseCode.value.trim().toUpperCase();if(original)p.set('originalCourse',original);const orig=sourceCourse.value?.sessions?.find(s=>s.num===item.sessionNum);if(orig?.date)p.set('originalDate',toISODate(orig.date));p.set('makeupCourse',item.code);p.set('makeupDate',toISODate(item.date));p.set('session',String(item.sessionNum));location.href=`requests.html?${p}`};
-const confirmDirect=(g,s)=>confirmMakeup({code:g.code,date:g.date,sessionNum:s.num,time:s.time,type:g.type,language:g.language});
-const toggleSession=n=>{if(!sessionSelectionTouched.value){sessionSelectionTouched.value=true;if(n!==1){targetSessions.value=[n];return}}const i=targetSessions.value.indexOf(n);if(i>-1){if(targetSessions.value.length>1)targetSessions.value.splice(i,1)}else{targetSessions.value.push(n);targetSessions.value.sort((a,b)=>a-b)}};
-const toggleAllSessions=()=>{sessionSelectionTouched.value=true;targetSessions.value=targetSessions.value.length===sessionRange.value.length?[1]:[...sessionRange.value]},resetSession=()=>{targetSessions.value=[1];sessionSelectionTouched.value=false};
+const confirmDirect=(g,s)=>confirmMakeup({code:g.code,date:s.date,sessionNum:s.num,time:s.time,type:g.type,language:g.language});
+
+const toggleSession=n=>{if(!sessionSelectionTouched.value){sessionSelectionTouched.value=true;if(n!==1){targetSessions.value=[n];selectedOptions.value=[];return}}const i=targetSessions.value.indexOf(n);if(i>-1){if(targetSessions.value.length>1)targetSessions.value.splice(i,1)}else{targetSessions.value.push(n);targetSessions.value.sort((a,b)=>a-b)}selectedOptions.value=[]};
+const toggleAllSessions=()=>{sessionSelectionTouched.value=true;targetSessions.value=targetSessions.value.length===sessionRange.value.length?[1]:[...sessionRange.value];selectedOptions.value=[]};
+const resetSession=()=>{targetSessions.value=[1];sessionSelectionTouched.value=false;selectedOptions.value=[]};
 const resetAll=()=>{selectedLevel.value='Level 2';selectedLanguage.value='All';selectedType.value='All';targetSessions.value=[1];searchQuery.value='';includePast.value=false;dateWindow.value='all';availableOnly.value=true;originalCourseCode.value='';selectedOptions.value=[];sessionSelectionTouched.value=false};
 const applyUrlParameters=async()=>{const p=new URLSearchParams(location.search),c=(p.get('course')||'').trim().toUpperCase(),sp=p.get('sessions')||p.get('session')||'';if(c)originalCourseCode.value=c;await nextTick();const max=selectedLevel.value==='Level 3'?18:8,req=[...new Set((sp.match(/\d+/g)||[]).map(Number).filter(n=>n>=1&&n<=max))].sort((a,b)=>a-b);if(req.length){targetSessions.value=req;sessionSelectionTouched.value=true}};
 onMounted(async()=>{await loadData();await applyUrlParameters()});
-return{levels,selectedLevel,languages,selectedLanguage,courseTypes,selectedType,targetSessions,sessionRange,filteredCourses,searchQuery,includePast,dateWindow,availableOnly,loading,loadError,loadData,originalCourseCode,sourceCourse,selectedOptions,getTypeStyle,isToday,copySingleSession,resetAll,resetSession,getWeekdayLabel,toggleSession,toggleAllSessions,toggleSelection,isSelected,removeSelection,clearSelections,copySelectedOptions,confirmDirect}
+
+return{levels,selectedLevel,languages,selectedLanguage,courseTypes,selectedType,targetSessions,sessionRange,filteredCourses,searchQuery,includePast,dateWindow,availableOnly,loading,loadError,loadData,originalCourseCode,sourceCourse,selectedOptions,getTypeStyle,isToday,copySingleSession,resetAll,resetSession,getWeekdayLabel,toggleSession,toggleAllSessions,toggleCourseOption,isCourseSelected,removeSelection,clearSelections,copySelectedOptions,confirmDirect}
 }}).mount('#app');
 </script>
 </body></html>
