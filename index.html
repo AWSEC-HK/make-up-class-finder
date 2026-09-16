@@ -70,7 +70,7 @@ select{-webkit-appearance:none;appearance:none;cursor:pointer}
     <button @click="copySelectedOptions" class="w-full bg-green-600 hover:bg-green-700 text-white rounded-2xl py-3 text-sm font-black"><i class="fa-brands fa-whatsapp mr-2"></i>複製 WhatsApp 訊息</button>
   </div>
 
-  <div v-if="!loading&&!loadError" class="flex items-center justify-between mb-4 px-1"><p class="text-sm font-black text-gray-700">找到 {{filteredCourses.length}} 個 Course 選擇</p><p class="text-[10px] font-bold text-gray-400">Confirm = 學生已確認單一補堂</p></div>
+  <div v-if="!loading&&!loadError" class="flex items-center justify-between mb-4 px-1"><p class="text-sm font-black text-gray-700">找到 {{filteredCourses.length}} 個 Course 選擇</p><p class="text-[10px] font-bold text-gray-400">Confirm 可一次確認多堂；每堂會獨立儲存</p></div>
   <div v-if="loading" class="text-center py-24"><i class="fa-solid fa-circle-notch fa-spin text-blue-500 text-2xl mb-4"></i><p class="text-gray-500 font-bold text-sm">正在載入課程資料…</p></div>
   <div v-else-if="loadError" class="ios-card border border-red-100 p-8 text-center"><p class="font-black">未能載入課程資料</p><button @click="loadData" class="mt-5 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold">重新載入</button></div>
 
@@ -90,10 +90,16 @@ select{-webkit-appearance:none;appearance:none;cursor:pointer}
         </div>
       </div>
 
-      <button @click="toggleCourseOption(group)" :class="isCourseSelected(group)?'bg-green-100 text-green-700 border-green-200':'bg-white text-gray-600 border-gray-200 hover:bg-green-50 hover:text-green-700'" class="w-full mt-4 px-4 py-3 rounded-2xl text-xs font-black border">
-        <i :class="isCourseSelected(group)?'fa-solid fa-check':'fa-solid fa-plus'" class="mr-2"></i>
-        {{isCourseSelected(group)?'Course Option Added':'Add Course Option'}}
-      </button>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
+        <button @click="toggleCourseOption(group)" :class="isCourseSelected(group)?'bg-green-100 text-green-700 border-green-200':'bg-white text-gray-600 border-gray-200 hover:bg-green-50 hover:text-green-700'" class="w-full px-4 py-3 rounded-2xl text-xs font-black border">
+          <i :class="isCourseSelected(group)?'fa-solid fa-check':'fa-solid fa-plus'" class="mr-2"></i>
+          {{isCourseSelected(group)?'Course Option Added':'Add Course Option'}}
+        </button>
+        <button @click="confirmCourse(group)" class="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-black">
+          <i class="fa-solid fa-check-double mr-2"></i>
+          {{ group.matchedSessions.length===1 ? 'Confirm Session '+group.matchedSessions[0].num : 'Confirm '+group.matchedSessions.length+' Sessions' }}
+        </button>
+      </div>
     </div>
   </div>
 
@@ -188,6 +194,15 @@ const copySelectedOptions=()=>{
 
 const confirmMakeup=item=>{const p=new URLSearchParams(),original=sourceCourse.value?.code||originalCourseCode.value.trim().toUpperCase();if(original)p.set('originalCourse',original);const orig=sourceCourse.value?.sessions?.find(s=>s.num===item.sessionNum);if(orig?.date)p.set('originalDate',toISODate(orig.date));p.set('makeupCourse',item.code);p.set('makeupDate',toISODate(item.date));p.set('session',String(item.sessionNum));location.href=`requests.html?${p}`};
 const confirmDirect=(g,s)=>confirmMakeup({code:g.code,date:s.date,sessionNum:s.num,time:s.time,type:g.type,language:g.language});
+const confirmCourse=g=>{
+  const original=sourceCourse.value?.code||originalCourseCode.value.trim().toUpperCase(),p=new URLSearchParams();
+  if(original)p.set('originalCourse',original);
+  p.set('makeupCourse',g.code);
+  p.set('sessions',g.matchedSessions.map(s=>s.num).join(','));
+  p.set('makeupDates',g.matchedSessions.map(s=>toISODate(s.date)).join(','));
+  p.set('originalDates',g.matchedSessions.map(s=>{const o=sourceCourse.value?.sessions?.find(x=>x.num===s.num);return o?.date?toISODate(o.date):''}).join(','));
+  location.href=`requests.html?${p}`;
+};
 
 const toggleSession=n=>{if(!sessionSelectionTouched.value){sessionSelectionTouched.value=true;if(n!==1){targetSessions.value=[n];selectedOptions.value=[];return}}const i=targetSessions.value.indexOf(n);if(i>-1){if(targetSessions.value.length>1)targetSessions.value.splice(i,1)}else{targetSessions.value.push(n);targetSessions.value.sort((a,b)=>a-b)}selectedOptions.value=[]};
 const toggleAllSessions=()=>{sessionSelectionTouched.value=true;targetSessions.value=targetSessions.value.length===sessionRange.value.length?[1]:[...sessionRange.value];selectedOptions.value=[]};
@@ -196,7 +211,7 @@ const resetAll=()=>{selectedLevel.value='Level 2';selectedLanguage.value='All';s
 const applyUrlParameters=async()=>{const p=new URLSearchParams(location.search),c=(p.get('course')||'').trim().toUpperCase(),sp=p.get('sessions')||p.get('session')||'';if(c)originalCourseCode.value=c;await nextTick();const max=selectedLevel.value==='Level 3'?18:8,req=[...new Set((sp.match(/\d+/g)||[]).map(Number).filter(n=>n>=1&&n<=max))].sort((a,b)=>a-b);if(req.length){targetSessions.value=req;sessionSelectionTouched.value=true}};
 onMounted(async()=>{await loadData();await applyUrlParameters()});
 
-return{levels,selectedLevel,languages,selectedLanguage,courseTypes,selectedType,targetSessions,sessionRange,filteredCourses,searchQuery,includePast,dateWindow,availableOnly,loading,loadError,loadData,originalCourseCode,sourceCourse,selectedOptions,getTypeStyle,isToday,copySingleSession,resetAll,resetSession,getWeekdayLabel,toggleSession,toggleAllSessions,toggleCourseOption,isCourseSelected,removeSelection,clearSelections,copySelectedOptions,confirmDirect}
+return{levels,selectedLevel,languages,selectedLanguage,courseTypes,selectedType,targetSessions,sessionRange,filteredCourses,searchQuery,includePast,dateWindow,availableOnly,loading,loadError,loadData,originalCourseCode,sourceCourse,selectedOptions,getTypeStyle,isToday,copySingleSession,resetAll,resetSession,getWeekdayLabel,toggleSession,toggleAllSessions,toggleCourseOption,isCourseSelected,removeSelection,clearSelections,copySelectedOptions,confirmDirect,confirmCourse}
 }}).mount('#app');
 </script>
 </body></html>
